@@ -10,5 +10,6 @@ Attenuate vocal on youtube MVs
     *    ![how it look](setupscript.png)
 * Copy https://raw.githubusercontent.com/heyqule/youtubekaraoke/master/karaoke.js to your new script, save it and enable it
 * Find a mv on youtube and test it out
+* Accept microphone permission notification if there is any.
 * ???
 * Profit
