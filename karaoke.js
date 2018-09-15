@@ -103,7 +103,8 @@
 
         var _pitchShift = function(amount)
         {
-            console.log('_pitchShift:'+amount);
+            $('#KaraokePitchValue').html(amount);
+
             micSource.disconnect();
 
             if(amount != 0)
@@ -258,7 +259,7 @@
 
                 this.controlPanel.append(
                     $('<div>',{style:'width:33%; display:inline-block;'}).
-                    append('<label style="width:100px;">🎤 Pitch Shift (WIP)</label><br />').
+                    append('<label style="width:100px;">🎤 Pitch Shift: <span id="KaraokePitchValue">'+pitchAdjustedValue+'</span></label><br />').
                     append($('<input>',{
                         type: 'range',
                         id: 'pitchshift',
@@ -301,7 +302,7 @@
         //Youtube Handler
         var mediaElement = $('.html5-main-video')[0];
         var targetContainer = 'div.ytp-right-controls';
-        var primaryPlayer = 'div#player';
+        var primaryPlayer = 'div#primary div#player';
 
         console.log("setting up mic");
         KaraokePlugin.setupMic(primaryPlayer);
@@ -476,7 +477,7 @@
         var fade1 = context.createBufferSource();
         var fade2 = context.createBufferSource();
         var fadeBuffer = createFadeBuffer(context, bufferTime, fadeTime);
-        fade1.buffer = fadeBuffer
+        fade1.buffer = fadeBufferl;
         fade2.buffer = fadeBuffer;
         fade1.loop = true;
         fade2.loop = true;
