@@ -104,15 +104,23 @@
         var _pitchShift = function(amount)
         {
             console.log('_pitchShift:'+amount);
-
             micSource.disconnect();
 
-            var pitchShiftEffect = new Jungle( micAudioContext );
-            var wetGain = audioContext.createGain();
-            pitchShiftEffect.output.connect( wetGain );
-            pitchShiftEffect.setPitchOffset(amount);
-            micSource.connect( pitchShiftEffect.input );
-            wetGain.connect( micAudioContext.destination);
+            if(amount != 0)
+            {
+                console.log('apply pitch shift');
+                var pitchShiftEffect = new Jungle( micAudioContext );
+                var wetGain = micAudioContext.createGain();
+                pitchShiftEffect.output.connect( wetGain );
+                pitchShiftEffect.setPitchOffset(amount);
+                micSource.connect( pitchShiftEffect.input );
+                wetGain.connect( micAudioContext.destination);
+            }
+            else
+            {
+                console.log('cancel pitch shift');
+                micSource.connect( micAudioContext.destination );
+            }
 
         }
         /**
@@ -254,8 +262,8 @@
                     append($('<input>',{
                         type: 'range',
                         id: 'pitchshift',
-                        min: -1,
-                        max: 1,
+                        min: -0.5,
+                        max: 1.5,
                         value: pitchAdjustedValue,
                         step: 0.1,
                         onchange: 'KaraokePluginPitchAdjust(this)'
@@ -313,6 +321,7 @@
         }
 
     }
+
 
 
 // Copyright 2012, Google Inc.
