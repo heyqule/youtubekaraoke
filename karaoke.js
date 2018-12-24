@@ -6,7 +6,7 @@
 // @author       heyqule
 // @match        https://www.youtube.com/watch?*
 // @require      https://code.jquery.com/jquery-3.3.1.slim.min.js
-// @downloadUrl  https://raw.githubusercontent.com/heyqule/youtubekaraoke/master/karaoke.js
+// @downloadURL  https://raw.githubusercontent.com/heyqule/youtubekaraoke/master/karaoke.js
 // @grant        unsafeWindow
 // ==/UserScript==
 
