@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Youtube HTML5 Karaoke
 // @namespace    http://heyqule.net/
-// @version      0.1.1
+// @version      0.2
 // @description  Youtube HTML5 Karaoke, support center cut on regular MV, left/right vocal/instrumental mixed Karaoke MVs.
 // @author       heyqule
 // @match        https://www.youtube.com/watch?*
@@ -18,6 +18,7 @@
         var audioContext, audioSource,micAudioContext, micSource;
         var karaokeFilterOn = false;
         var pitchAdjustedValue = 0, channelAdjustedValue = 1;
+        var highPassAdjustedValue = 200, lowPassAdjustedValue = 6000
 
         var _createBiquadFilter = function(type,freq,qValue)
         {
@@ -33,8 +34,8 @@
         var _cutCenter = function()
         {
             //cutoff frequencies
-            var f1 = 200;
-            var f2 = 6000;
+            var f1 = highPassAdjustedValue;
+            var f2 = lowPassAdjustedValue;
             console.log('setting center cut @'+f1+' - '+f2);
             //splitter and gains
             var splitter, gainL, gainR;
@@ -256,6 +257,28 @@
                         value: channelAdjustedValue,
                         step: 1,
                         onchange: 'KaraokePluginChannelAdjust(this)'
+                    })).
+                    append('<br />').
+                    append('<label style="width:100px;">High Pass: <span id="KaraokeHighPassValue">'+highPassAdjustedValue+'</span> Hz</label><br />').
+                    append($('<input>',{
+                        type: 'range',
+                        id: 'highpass',
+                        min: 50,
+                        max: 200,
+                        value: highPassAdjustedValue,
+                        step: 10,
+                        onchange: 'KaraokePluginHighPassAdjust(this)'
+                    })).
+                    append('<br />').
+                    append('<label style="width:100px;">Low Pass: <span id="KaraokeLowPassValue">'+lowPassAdjustedValue+'</span> Hz</label><br />').
+                    append($('<input>',{
+                        type: 'range',
+                        id: 'lowpass',
+                        min: 5000,
+                        max: 8000,
+                        value: lowPassAdjustedValue,
+                        step: 250,
+                        onchange: 'KaraokePluginLowPassAdjust(this)'
                     }))
                 );
 
@@ -286,8 +309,7 @@
             },
             pitchAdjust: function(element)
             {
-                pitchAdjustedValue = $(element).val();
-                console.log('pitchshift:'+pitchAdjustedValue);
+                pitchAdjustedValue = $(element).val();                
                 _pitchShift(pitchAdjustedValue);
 
                 return this;
@@ -296,6 +318,22 @@
             {
                 channelAdjustedValue = parseInt($(element).val());
                 _adjustChannel();
+
+                return this;
+            },
+            highPassAdjust: function(element)
+            {
+                highPassAdjustedValue = parseInt($(element).val());
+                $('#KaraokeHighPassValue').html(highPassAdjustedValue);
+                _adjustChannel()
+                return this;
+            },
+            lowPassAdjust: function(element)
+            {
+                lowPassAdjustedValue = parseInt($(element).val());
+                $('#KaraokeLowPassValue').html(lowPassAdjustedValue);
+                _adjustChannel()
+                return this;
             }
         };
     }(jQuery);
@@ -321,6 +359,12 @@
         }
         unsafeWindow.KaraokePluginChannelAdjust = function(element) {
             KaraokePlugin.channelAdjust(element);
+        }
+        unsafeWindow.KaraokePluginHighPassAdjust = function(element) {
+               KaraokePlugin.highPassAdjust(element);
+        }
+        unsafeWindow.KaraokePluginLowPassAdjust = function(element) {
+               KaraokePlugin.lowPassAdjust(element);
         }
 
     }
