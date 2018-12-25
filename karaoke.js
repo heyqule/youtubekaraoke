@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Youtube HTML5 Karaoke
 // @namespace    http://heyqule.net/
-// @version      0.2
+// @version      0.2.1
 // @description  Youtube HTML5 Karaoke, support center cut on regular MV, left/right vocal/instrumental mixed Karaoke MVs.
 // @author       heyqule
 // @match        https://www.youtube.com/watch?*
@@ -264,7 +264,7 @@
                         type: 'range',
                         id: 'highpass',
                         min: 50,
-                        max: 200,
+                        max: 400,
                         value: highPassAdjustedValue,
                         step: 10,
                         onchange: 'KaraokePluginHighPassAdjust(this)'
@@ -274,10 +274,10 @@
                     append($('<input>',{
                         type: 'range',
                         id: 'lowpass',
-                        min: 5000,
+                        min: 4000,
                         max: 8000,
                         value: lowPassAdjustedValue,
-                        step: 250,
+                        step: 200,
                         onchange: 'KaraokePluginLowPassAdjust(this)'
                     }))
                 );
