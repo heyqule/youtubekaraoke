@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Youtube HTML5 Karaoke
 // @namespace    http://heyqule.net/
-// @version      0.2.1
+// @version      0.2.2
 // @description  Youtube HTML5 Karaoke, support center cut on regular MV, left/right vocal/instrumental mixed Karaoke MVs.
 // @author       heyqule
 // @match        https://www.youtube.com/watch?*
@@ -17,7 +17,7 @@
         //webaudio elements
         var audioContext, audioSource,micAudioContext, micSource;
         var karaokeFilterOn = false;
-        var pitchAdjustedValue = 0, channelAdjustedValue = 1;
+        var pitchAdjustedValue = 0, channelAdjustedValue = 1, gainAdjustedValue = 1;
         var highPassAdjustedValue = 200, lowPassAdjustedValue = 6000
 
         var _createBiquadFilter = function(type,freq,qValue)
@@ -125,8 +125,22 @@
                 console.log('cancel pitch shift');
                 micSource.connect( micAudioContext.destination );
             }
-
         }
+
+        var _micGain = function(amount)
+        {
+            $('#KaraokeGainValue').html(amount);
+            console.log($('#KaraokeGainValue').html());
+
+            micSource.disconnect();
+
+            var micGain = micAudioContext.createGain();
+            micSource.connect( micGain );
+            micGain.connect( micAudioContext.destination );
+            micGain.gain.value = amount;
+            micSource.connect( micAudioContext.destination );
+        }
+
         /**
           * 0 = left cut, 1 = center cut, 2 = right cut
          **/
@@ -284,6 +298,17 @@
 
                 this.controlPanel.append(
                     $('<div>',{style:'width:33%; display:inline-block;'}).
+                    append('<label style="width:100px;">🎤 Gain: <span id="KaraokeGainValue">'+gainAdjustedValue+'</span></label><br />').
+                    append($('<input>',{
+                        type: 'range',
+                        id: 'micgain',
+                        min: 0,
+                        max: 2,
+                        value: gainAdjustedValue,
+                        step: 0.1,
+                        onchange: 'KaraokePluginMicGainAdjust(this)'
+                    })).
+                    append('<br />').
                     append('<label style="width:100px;">🎤 Pitch Shift: <span id="KaraokePitchValue">'+pitchAdjustedValue+'</span></label><br />').
                     append($('<input>',{
                         type: 'range',
@@ -292,8 +317,9 @@
                         max: 1.5,
                         value: pitchAdjustedValue,
                         step: 0.1,
-                        onchange: 'KaraokePluginPitchAdjust(this)'
+                        onchange: 'KaraokePluginMicPitchAdjust(this)'
                     }))
+
                 );
 
                 this.controlPanel.insertAfter(primaryPlayer);
@@ -307,10 +333,17 @@
 
                 return this;
             },
-            pitchAdjust: function(element)
+            micPitchAdjust: function(element)
             {
                 pitchAdjustedValue = $(element).val();                
                 _pitchShift(pitchAdjustedValue);
+
+                return this;
+            },
+            micGainAdjust: function(element)
+            {
+                gainAdjustedValue = $(element).val();
+                _micGain(gainAdjustedValue);
 
                 return this;
             },
@@ -354,8 +387,11 @@
         unsafeWindow.KaraokePluginSwitch = function() {
             KaraokePlugin.switch();
         }
-        unsafeWindow.KaraokePluginPitchAdjust = function(element) {
-            KaraokePlugin.pitchAdjust(element);
+        unsafeWindow.KaraokePluginMicGainAdjust = function(element) {
+            KaraokePlugin.micGainAdjust(element);
+        }
+        unsafeWindow.KaraokePluginMicPitchAdjust = function(element) {
+            KaraokePlugin.micPitchAdjust(element);
         }
         unsafeWindow.KaraokePluginChannelAdjust = function(element) {
             KaraokePlugin.channelAdjust(element);
