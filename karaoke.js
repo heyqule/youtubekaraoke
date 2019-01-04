@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Youtube HTML5 Karaoke
 // @namespace    http://heyqule.net/
-// @version      0.2.2
+// @version      0.2.3
 // @description  Youtube HTML5 Karaoke, support center cut on regular MV, left/right vocal/instrumental mixed Karaoke MVs.
 // @author       heyqule
 // @match        https://www.youtube.com/watch?*
@@ -188,6 +188,7 @@
                     /* use the stream */
                     window.AudioContext = window.AudioContext || window.webkitAudioContext;
                     micAudioContext = new AudioContext();
+                    console.log('Mic Latency:'+micAudioContext.baseLatency);
 
                     // Create an AudioNode from the stream.
                     micSource = micAudioContext.createMediaStreamSource( stream );
