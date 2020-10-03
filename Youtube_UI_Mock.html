@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>UI Test</title>
+</head>
+<body>
+<div id="primary">
+    <div id="player">
+        <video class="html5-main-video"></video>
+        <div class="ytp-right-controls"></div>
+    </div>
+</div>
+<h1 id="500_text" style="position:relative; z-index:5000;">This will overlay the dialog</h1>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js" type="application/javascript"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js" type="application/javascript"></script>
+<script  type="application/javascript">
+    unsafeWindow = window;
+</script>
+<script src="karaoke.js" type="application/javascript"></script>
+<script  type="application/javascript">
+$(document).ready(function() {
+    $('#karaoke-button').click();
+    $('#search_track_dialog').click();
+    var position = $('#500_text').position();
+    $('.ui-dialog').css('left',(position.left+200)+'px');
+    $('.ui-dialog').css('top',position.top+'px');
+
+})
+</script>
+</body>
+</html>
