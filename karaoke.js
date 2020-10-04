@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Youtube HTML5 Karaoke
 // @namespace    http://heyqule.net/
-// @version      0.3.2
+// @version      0.3.5
 // @description  Youtube HTML5 Karaoke, support center cut on regular MV, left/right vocal/instrumental mixed Karaoke MVs.
 // @author       heyqule
 // @match        https://www.youtube.com/watch?*
@@ -17,6 +17,7 @@
     'use strict';
     let KaraokePlugin = function ($) {
         const APIKey = null;
+        const MAX_CACHE_SIZE = 5000;
         //webaudio elements
         let audioContext, audioSource,micAudioContext, micSource;
         let karaokeFilterOn = false;
@@ -160,15 +161,19 @@
 
         let _loadSetting = function() {
             let videoId = _getVideoId();
-            let savedItem = localStorage.getItem(videoId)
+            let savedItem = JSON.parse(localStorage.getItem(videoId));
+            console.log("Loaded "+videoId, savedItem);
             if(savedItem) {
-                channelAdjustedValue = savedItem.channel;
-                lowPassAdjustedValue = savedItem.lowPass;
-                highPassAdjustedValue = savedItem.highPass;
+                channelAdjustedValue = savedItem.cv;
+                lowPassAdjustedValue = savedItem.lpv;
+                highPassAdjustedValue = savedItem.hpv;
             }
-            else if(this::APIKey) {
+            else if(APIKey) {
                 _loadSettingFromRemote(videoId)
             }
+
+            savedItem.date = Date.now();
+            localStorage.setItem(videoId, JSON.stringify(savedItem));
         }
 
         let _loadSettingFromRemote = function(videoId) {
@@ -178,19 +183,38 @@
         let _saveSetting = function() {
             let videoId = _getVideoId();
             let data = {
-                channel: channelAdjustedValue,
-                lowPass: lowPassAdjustedValue,
-                highPass: highPassAdjustedValue
+                cv: channelAdjustedValue,
+                lpv: lowPassAdjustedValue,
+                hpv: highPassAdjustedValue,
+                date: Date.now()
             }
-            localStorage.setItem(videoId, data);
+            localStorage.setItem(videoId, JSON.stringify(data));
 
-            if(this::APIKey) {
+            if(APIKey) {
                 _SaveSettingToRemote(videoId);
             }
+
+            _trimCache();
         }
 
         let _SaveSettingToRemote = function(videoId) {
             return this;
+        }
+
+        let _trimCache = function() {
+            if(localStorage.length > MAX_CACHE_SIZE) {
+                let sortableArray = [];
+                for (let i = 0; i < localStorage.length; i++) {
+                    sortableArray[localStorage.key(i)] = {
+                        key: localStorage.key(i),
+                        data: JSON.parse(localStorage.getItem(localStorage.key(i)))
+                    };
+                }
+                sortableArray.sort((a, b) => (a.data.date > b.data.date) ? 1 : -1);
+                for (let i = 0; i < MAX_CACHE_SIZE/5; i++) {
+                    localStorage.removeItem(sortableArray[i].key);
+                }
+            }
         }
 
         return {
@@ -297,7 +321,7 @@
                     append('<label style="width:100px;">Vocal Attenuation: (left - center - right)</label><br />').
                     append($('<input>',{
                         type: 'range',
-                        id: 'pitchshift',
+                        id: 'channelshift',
                         min: 0,
                         max: 2,
                         value: channelAdjustedValue,
@@ -428,6 +452,12 @@
                     }
                 }
             },
+            loadSetting: function() {
+                _loadSetting();
+                $('#channelshift').val(channelAdjustedValue);
+                $('#highpass').val(highPassAdjustedValue);
+                $('#lowpass').val(lowPassAdjustedValue);
+            }
         };
     }(jQuery);
 
@@ -471,6 +501,8 @@
         unsafeWindow.KaraokePluginTrackSearch = function() {
             KaraokePlugin.searchTracks();
         }
+
+        KaraokePlugin.loadSetting();
 
     }
 

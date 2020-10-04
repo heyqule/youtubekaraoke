@@ -12,6 +12,7 @@
     </div>
 </div>
 <h1 id="500_text" style="position:relative; z-index:5000;">This will overlay the dialog</h1>
+<h4 id="storageTest"></h4>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js" type="application/javascript"></script>
 <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js" type="application/javascript"></script>
 <script  type="application/javascript">
@@ -26,6 +27,18 @@ $(document).ready(function() {
     $('.ui-dialog').css('left',(position.left+200)+'px');
     $('.ui-dialog').css('top',position.top+'px');
 
+    for(var i = 0; i <= 5500; i++)
+    {
+        localStorage.setItem(i, JSON.stringify({
+            cv: 1,
+            lpv: 100,
+            hpv: 2000,
+            date: Date.now()
+        }));
+    }
+
+    $('#save_setting').click();
+    $('#storageTest').html("cache clean test: <br /> 4501 == "+localStorage.length)
 })
 </script>
 </body>
