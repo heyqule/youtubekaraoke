@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Youtube HTML5 Karaoke
 // @namespace    http://heyqule.net/
-// @version      0.3.6
+// @version      0.3.7
 // @description  Youtube HTML5 Karaoke, support center cut on regular MV, left/right vocal/instrumental mixed Karaoke MVs.
 // @author       heyqule
 // @match        https://www.youtube.com/watch?*
@@ -146,6 +146,8 @@
                     _cutRight();
                     break;
             }
+
+            _saveSetting();
         }
 
         let _disconnectProcessors = function() {
@@ -190,14 +192,24 @@
             }
             localStorage.setItem(videoId, JSON.stringify(data));
 
-            if(APIKey) {
-                _SaveSettingToRemote(videoId);
-            }
-
             _trimCache();
         }
 
-        let _SaveSettingToRemote = function(videoId) {
+        let _SaveSettingToRemote = function() {
+            let videoId = _getVideoId();
+            if(APIKey) {
+                $('#karaoke_controlpanel_message').html($('<div>',{
+                    class: 'ui-state-highlight ui-corner-all',
+                    html: 'This is work in progress'
+                }))
+            }
+            else
+            {
+                $('#karaoke_controlpanel_message').html($('<div>',{
+                    class: 'ui-state-error ui-corner-all',
+                    html: 'You don\'t have permission to save to cloud'
+                }))
+            }
             return this;
         }
 
@@ -368,8 +380,8 @@
                     append($('<input>',{
                         type: 'button',
                         id: 'save_setting',
-                        value: 'Save Setting',
-                        onclick: 'KaraokePluginSaveSetting(this)'
+                        value: 'Save to Cloud',
+                        onclick: 'KaraokePluginSaveToRemote(this)'
                     })).
                     append('<br /><br />').
                     append($('<input>',{
@@ -419,10 +431,9 @@
                 _adjustChannel()
                 return this;
             },
-            saveCurrentSetting: function(element)
+            saveToRemote: function(element)
             {
-                console.log('Saving Setting:'+APIKey);
-                _saveSetting();
+                _SaveSettingToRemote();
                 return this;
             },
             searchTracks: function(element)
@@ -495,8 +506,8 @@
         unsafeWindow.KaraokePluginLowPassAdjust = function(element) {
             KaraokePlugin.lowPassAdjust(element);
         }
-        unsafeWindow.KaraokePluginSaveSetting = function() {
-            KaraokePlugin.saveCurrentSetting();
+        unsafeWindow.KaraokePluginSaveToRemote = function() {
+            KaraokePlugin.saveToRemote();
         }
         unsafeWindow.KaraokePluginTrackSearch = function() {
             KaraokePlugin.searchTracks();
