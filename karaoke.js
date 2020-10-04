@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Youtube HTML5 Karaoke
 // @namespace    http://heyqule.net/
-// @version      0.3.1
+// @version      0.3.2
 // @description  Youtube HTML5 Karaoke, support center cut on regular MV, left/right vocal/instrumental mixed Karaoke MVs.
 // @author       heyqule
 // @match        https://www.youtube.com/watch?*
@@ -15,17 +15,17 @@
 
 (function($) {
     'use strict';
-    var APIKey = '1234567890';
-    var KaraokePlugin = function ($) {
+    let KaraokePlugin = function ($) {
+        const APIKey = null;
         //webaudio elements
-        var audioContext, audioSource,micAudioContext, micSource;
-        var karaokeFilterOn = false;
-        var channelAdjustedValue = 1, gainAdjustedValue = 1;
-        var highPassAdjustedValue = 200, lowPassAdjustedValue = 6000
-        var trackSearchDialog = null;
+        let audioContext, audioSource,micAudioContext, micSource;
+        let karaokeFilterOn = false;
+        let channelAdjustedValue = 1, gainAdjustedValue = 1;
+        let highPassAdjustedValue = 200, lowPassAdjustedValue = 6000
+        let trackSearchDialog = null;
 
 
-        var _createBiquadFilter = function(type,freq,qValue)
+        let _createBiquadFilter = function(type,freq,qValue)
         {
             var filter = audioContext.createBiquadFilter();
             filter.type = type;
@@ -36,17 +36,17 @@
         /**
         *  Cut common vocal frequencies @ center
         */
-        var _cutCenter = function()
+        let _cutCenter = function()
         {
             //cutoff frequencies
-            var f1 = highPassAdjustedValue;
-            var f2 = lowPassAdjustedValue;
+            let f1 = highPassAdjustedValue;
+            let f2 = lowPassAdjustedValue;
             console.log('setting center cut @'+f1+' - '+f2);
             //splitter and gains
-            var splitter, gainL, gainR;
+            let splitter, gainL, gainR;
             //biquadFilters
-            var filterLP1, filterHP1, filterLP2, filterHP2;
-            var filterLP3, filterHP3, filterLP4, filterHP4;
+            let filterLP1, filterHP1, filterLP2, filterHP2;
+            let filterLP3, filterHP3, filterLP4, filterHP4;
             //phase inversion filter
             splitter = audioContext.createChannelSplitter(2);
             gainL = audioContext.createGain();
@@ -83,10 +83,10 @@
         /**
         * Expand left channel to both channel, drop right channel
         */
-        var _cutRight = function()
+        let _cutRight = function()
         {
             console.log('setting right cut');
-            var splitter, merger;
+            let splitter, merger;
             splitter = audioContext.createChannelSplitter(2);
             merger = audioContext.createChannelMerger(1);
             splitter.connect(merger, 0);
@@ -97,10 +97,10 @@
         /**
         * Expand right channel to both channel, drop left channel
         */
-        var _cutLeft = function()
+        let _cutLeft = function()
         {
             console.log('setting left cut');
-            var splitter,merger;
+            let splitter,merger;
             splitter = audioContext.createChannelSplitter(2);
             merger = audioContext.createChannelMerger(1);
             splitter.connect(merger, 1);
@@ -113,14 +113,14 @@
          * @param amount
          * @private
          */
-        var _micGain = function(amount)
+        let _micGain = function(amount)
         {
             $('#KaraokeGainValue').html(amount);
             console.log($('#KaraokeGainValue').html());
 
             micSource.disconnect();
 
-            var micGain = micAudioContext.createGain();
+            let micGain = micAudioContext.createGain();
             micSource.connect( micGain );
             micGain.connect( micAudioContext.destination );
             micGain.gain.value = amount;
@@ -130,7 +130,7 @@
         /**
           * 0 = left cut, 1 = center cut, 2 = right cut
          **/
-        var _adjustChannel = function()
+        let _adjustChannel = function()
         {
             console.log('channelAdjust:'+channelAdjustedValue);
             _disconnectProcessors();
@@ -147,9 +147,50 @@
             }
         }
 
-        var _disconnectProcessors = function() {
+        let _disconnectProcessors = function() {
             console.log('disconnect audio processors');
             audioSource.disconnect();
+        }
+
+        let _getVideoId = function() {
+            let queryString = window.location.search;
+            let urlParams = new URLSearchParams(queryString);
+            return urlParams.get('v');
+        }
+
+        let _loadSetting = function() {
+            let videoId = _getVideoId();
+            let savedItem = localStorage.getItem(videoId)
+            if(savedItem) {
+                channelAdjustedValue = savedItem.channel;
+                lowPassAdjustedValue = savedItem.lowPass;
+                highPassAdjustedValue = savedItem.highPass;
+            }
+            else if(this::APIKey) {
+                _loadSettingFromRemote(videoId)
+            }
+        }
+
+        let _loadSettingFromRemote = function(videoId) {
+            return this;
+        }
+
+        let _saveSetting = function() {
+            let videoId = _getVideoId();
+            let data = {
+                channel: channelAdjustedValue,
+                lowPass: lowPassAdjustedValue,
+                highPass: highPassAdjustedValue
+            }
+            localStorage.setItem(videoId, data);
+
+            if(this::APIKey) {
+                _SaveSettingToRemote(videoId);
+            }
+        }
+
+        let _SaveSettingToRemote = function(videoId) {
+            return this;
         }
 
         return {
@@ -356,7 +397,9 @@
             },
             saveCurrentSetting: function(element)
             {
-                console.log('SaveSetting:'+APIKey);
+                console.log('Saving Setting:'+APIKey);
+                _saveSetting();
+                return this;
             },
             searchTracks: function(element)
             {
