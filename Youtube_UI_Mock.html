@@ -13,6 +13,17 @@
 </div>
 <h1 id="500_text" style="position:relative; z-index:5000;">This will overlay the dialog</h1>
 <h4 id="storageTest"></h4>
+<form metho="post" action="http://localhost:4567/youtube/import">
+    <label>Test Submit to Cloud</label>
+
+    <label>User-Token</label>
+    <input type="text" name="token" value="write-1234567890" />
+    <label>Youtube Video ID</label>
+    <input type="text" name="song_id" value="QE1piGBS1sI" />
+    <label>Setting</label>
+    <input type="text" name="song_setting" value="{cv: 1, lpv: 250, hpv: 6000}" />
+    <input type="submit" value="Submit to Cloud" />
+</form>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js" type="application/javascript"></script>
 <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js" type="application/javascript"></script>
 <script  type="application/javascript">
@@ -26,19 +37,6 @@ $(document).ready(function() {
     var position = $('#500_text').position();
     $('.ui-dialog').css('left',(position.left+200)+'px');
     $('.ui-dialog').css('top',position.top+'px');
-
-    for(var i = 0; i <= 5500; i++)
-    {
-        localStorage.setItem(i, JSON.stringify({
-            cv: 1,
-            lpv: 100,
-            hpv: 2000,
-            date: Date.now()
-        }));
-    }
-
-    $('#save_setting').click();
-    $('#storageTest').html("cache clean test: <br /> 4501 == "+localStorage.length)
 })
 </script>
 </body>

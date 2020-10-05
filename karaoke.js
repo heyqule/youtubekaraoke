@@ -163,6 +163,9 @@
 
         let _loadSetting = function() {
             let videoId = _getVideoId();
+            if(typeof videoId === undefined) {
+                return;
+            }
             let savedItem = JSON.parse(localStorage.getItem(videoId));
             console.log("Loaded "+videoId, savedItem);
             if(savedItem) {
@@ -184,6 +187,9 @@
 
         let _saveSetting = function() {
             let videoId = _getVideoId();
+            if(typeof videoId === undefined) {
+                return;
+            }
             let data = {
                 cv: channelAdjustedValue,
                 lpv: lowPassAdjustedValue,
