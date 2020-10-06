@@ -21,6 +21,16 @@
     const targetContainer = 'div.ytp-right-controls';
     const primaryPlayer = 'div#primary div#player';
 
+    const videoLinkProvider = {
+        youtube: 'https://www.youtube.com/watch?v=%s'
+    };
+    const videoImageProvider = {
+        youtube: 'https://i.ytimg.com/vi/%s/hqdefault.jpg'
+    };
+    const channelLinkProvider = {
+        youtube: 'https://www.youtube.com/channel/%s'
+    };
+
     let KaraokeUI = function ($) {
         return {
             menuUI : function() {
@@ -130,6 +140,7 @@
                 let button = $('<button>',{
                     id: 'karaoke_search_submit',
                     html: 'Submit',
+                    onclick: 'KaraokePluginSubmitSearch()'
                 });
                 let message = $('<p>', {
                     id: 'karaoke_search_message',
@@ -186,6 +197,43 @@
                     }
                 });
                 return trackSearchDialog;
+            },
+            getVideoLink: function(type, video_id) {
+                return videoLinkProvider[type].replace('%s',video_id)
+            },
+            getVideoImage: function(type, video_id) {
+                return videoImageProvider[type].replace('%s',video_id)
+            },
+            getChannelLink: function(type, channel_id) {
+                return channelLinkProvider[type].replace('%s',channel_id)
+            },
+            songItemUI : function(data) {
+                console.log('render songs');
+                console.log(data);
+                let songTab = $('#karaoke_search_result_songs');
+                songTab.empty();
+                for(let i = 0; i < data.length; i++)
+                {
+                    let img = $('<img>',{src: this.getVideoImage('youtube',data[i].song_id)});
+                    let block = $('<a>',{href: this.getVideoLink('youtube',data[i].song_id)})
+                    block.append(img).append(data[i].name);
+                    songTab.append(block);
+                }
+            },
+            channelItemUI : function(data) {
+                console.log('render channel');
+                console.log(data);
+                let songTab = $('#karaoke_search_result_songs')
+                for(let i = 0; i < data.length; i++)
+                {
+
+                }
+            },
+            renderTab: function() {
+                let json_data = "{\"songs\":[{\"id\":8,\"name\":\"Backstreet Boys - Larger Than Life (Official Music Video)\",\"song_id\":\"MEb2CecR11I\"},{\"id\":6,\"name\":\"Backstreet Boys - Shape Of My Heart (Official Music Video)\",\"song_id\":\"OT5msu-dap8\"},{\"id\":7,\"name\":\"Backstreet Boys - I Want It That Way (Official Music Video)\",\"song_id\":\"4fndeDfaWCg\"},{\"id\":5,\"name\":\"The Call\",\"song_id\":\"9TscNjSU8P4\"}],\"channels\":[{\"id\":3,\"name\":\"Backstreet Boys - Topic\",\"channel_id\":\"UCQsJi7L4_zXzYRN2X0Fw3Zg\"},{\"id\":4,\"name\":\"BackstreetBoysVEVO\",\"channel_id\":\"UCUFdeo1oLLH_QPlaQfZrqbg\"}]}";
+                let data = JSON.parse(json_data);
+                this.songItemUI(data.songs);
+                this.channelItemUI(data.channels);
             }
         }
     }(jQuery)
@@ -591,6 +639,9 @@
         }
         unsafeWindow.KaraokePluginTrackSearch = function() {
             KaraokePlugin.searchTracks();
+        }
+        unsafeWindow.KaraokePluginSubmitSearch = function() {
+            KaraokeUI.renderTab();
         }
 
         KaraokePlugin.loadSetting();
