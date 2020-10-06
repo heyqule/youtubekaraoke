@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Youtube HTML5 Karaoke
 // @namespace    http://heyqule.net/
-// @version      0.4.1
+// @version      0.4.2
 // @description  Youtube HTML5 Karaoke, support center cut on regular MV, left/right vocal/instrumental mixed Karaoke MVs.
 // @author       heyqule
 // @match        https://www.youtube.com/watch?*
@@ -46,7 +46,7 @@
         let controlPanelMessage = $('<div>',{
             id: 'karaoke_controlpanel_message'
         });
-        let controlPanel, channelAdjusteControl, highPassAdjustedControl, lowPassAdjustedControl, gainAdjustedControl;
+        let controlPanel, channelAdjustControl, highPassAdjustControl, lowPassAdjustControl, gainAdjustControl;
         //Search Panel
         let searchQueryControl,searchButtonControl,searchMessageControl,searchSongResultView, searchChannelResultView;
         return {
@@ -62,7 +62,7 @@
                     text: '🎤 Controls'
                 })).append(controlPanelMessage);
 
-                channelAdjusteControl = $('<input>',{
+                channelAdjustControl = $('<input>',{
                     type: 'range',
                     id: 'channelshift',
                     min: 0,
@@ -71,7 +71,7 @@
                     step: 1,
                     onchange: 'KaraokePluginChannelAdjust(this)'
                 });
-                highPassAdjustedControl = $('<input>',{
+                highPassAdjustControl = $('<input>',{
                     type: 'range',
                     id: 'highpass',
                     min: 50,
@@ -80,7 +80,7 @@
                     step: 10,
                     onchange: 'KaraokePluginHighPassAdjust(this)'
                 });
-                lowPassAdjustedControl = $('<input>',{
+                lowPassAdjustControl = $('<input>',{
                     type: 'range',
                     id: 'lowpass',
                     min: 4000,
@@ -89,7 +89,7 @@
                     step: 200,
                     onchange: 'KaraokePluginLowPassAdjust(this)'
                 })
-                gainAdjustedControl = $('<input>',{
+                gainAdjustControl = $('<input>',{
                     type: 'range',
                     id: 'micgain',
                     min: 0,
@@ -101,19 +101,19 @@
                 controlPanel.append(
                     $('<div>',{style:'width:33%; display:inline-block;'}).
                     append('<label style="width:100px;">Vocal Attenuation: (left - center - right)</label><br />').
-                    append(channelAdjusteControl).
+                    append(channelAdjustControl).
                     append('<br />').
                     append('<label style="width:100px;">High Pass: <span id="KaraokeHighPassValue">'+highPassAdjustedValue+'</span> Hz</label><br />').
-                    append(highPassAdjustedControl).
+                    append(highPassAdjustControl).
                     append('<br />').
                     append('<label style="width:100px;">Low Pass: <span id="KaraokeLowPassValue">'+lowPassAdjustedValue+'</span> Hz</label><br />').
-                    append(lowPassAdjustedControl)
+                    append(lowPassAdjustControl)
                 );
 
                 controlPanel.append(
                     $('<div>',{style:'width:33%; display:inline-block;'}).
                     append('<label style="width:100px;">🎤 Gain: <span id="KaraokeGainValue">'+gainAdjustedValue+'</span></label><br />').
-                    append(gainAdjustedControl).
+                    append(gainAdjustControl).
                     append('<br /><br />').
                     append($('<input>',{
                         type: 'button',
@@ -248,13 +248,16 @@
             },
             getSearchQueryControl: function() {
                 return searchQueryControl;
+            },
+            getControlPanelMessageControl: function() {
+                return controlPanelMessage
             }
         }
     }(jQuery)
 
     let KaraokePlugin = function ($, KaraokeUI) {
         const APIKey = 'admin-1234567890';
-        const ENDPOINT_URL = 'http://127.0.0.1:4567/';
+        const ENDPOINT_URL = 'http://localhost:4567/';
         const MAX_CACHE_SIZE = 5000;
         //webaudio elements
         let audioContext, audioSource,micAudioContext, micSource;
@@ -394,29 +397,29 @@
             audioSource.disconnect();
         }
 
-        let _getVideoId = function() {
+        let _getSongId = function() {
             let queryString = window.location.search;
             let urlParams = new URLSearchParams(queryString);
             return urlParams.get('v');
         }
 
         let _loadSetting = function() {
-            let videoId = _getVideoId();
-            if(typeof videoId === undefined) {
+            let songId = _getSongId();
+            if(typeof songId === undefined) {
                 return;
             }
-            let savedItem = JSON.parse(localStorage.getItem(videoId));
-            console.log("Loaded "+videoId, savedItem);
+            let savedItem = JSON.parse(localStorage.getItem(songId));
+            console.log("Loaded "+songId, savedItem);
             if(savedItem) {
                 channelAdjustedValue = savedItem.cv;
                 lowPassAdjustedValue = savedItem.lpv;
                 highPassAdjustedValue = savedItem.hpv;
 
                 savedItem.date = Date.now();
-                localStorage.setItem(videoId, JSON.stringify(savedItem));
+                localStorage.setItem(songId, JSON.stringify(savedItem));
             }
             else if(APIKey) {
-                _loadSettingFromRemote(videoId)
+                _loadSettingFromRemote(songId)
             }
         }
 
@@ -425,8 +428,8 @@
         }
 
         let _saveSetting = function() {
-            let videoId = _getVideoId();
-            if(typeof videoId === undefined) {
+            let songId = _getSongId();
+            if(typeof songId === undefined) {
                 return;
             }
             let data = {
@@ -435,22 +438,47 @@
                 hpv: highPassAdjustedValue,
                 date: Date.now()
             }
-            localStorage.setItem(videoId, JSON.stringify(data));
+            localStorage.setItem(songId, JSON.stringify(data));
 
             _trimCache();
         }
 
         let _SaveSettingToRemote = function() {
-            let videoId = _getVideoId();
+            let songId = _getSongId();
             if(APIKey) {
-                $('#karaoke_controlpanel_message').html($('<div>',{
-                    class: 'ui-state-highlight ui-corner-all',
-                    html: 'This is work in progress'
-                }))
+                $.ajax(ENDPOINT_URL+'/youtube/import', {
+                    data: {
+                        song_setting: {
+                            cv: channelAdjustedValue,
+                            lpv: lowPassAdjustedValue,
+                            hpv: highPassAdjustedValue,
+                            date: Date.now()
+                        },
+                        song_id: songId,
+                        token: APIKey
+                    },
+                    success: function(json_data) {
+                        let data = JSON.parse(json_data)
+                        if(data.success)
+                        {
+                            KaraokeUI.getControlPanelMessageControl().html($('<div>',{
+                                class: 'ui-state-highlight ui-corner-all',
+                                html: data.message
+                            }));
+                        }
+                        else
+                        {
+                            KaraokeUI.getControlPanelMessageControl().html($('<div>',{
+                                class: 'ui-state-error ui-corner-all',
+                                html: data.message
+                            }));
+                        }
+                    }
+                })
             }
             else
             {
-                $('#karaoke_controlpanel_message').html($('<div>',{
+                KaraokeUI.getControlPanelMessageControl().html($('<div>',{
                     class: 'ui-state-error ui-corner-all',
                     html: 'You don\'t have permission to save to cloud'
                 }))
@@ -462,10 +490,15 @@
             if(localStorage.length > MAX_CACHE_SIZE) {
                 let sortableArray = [];
                 for (let i = 0; i < localStorage.length; i++) {
-                    sortableArray[localStorage.key(i)] = {
-                        key: localStorage.key(i),
-                        data: JSON.parse(localStorage.getItem(localStorage.key(i)))
-                    };
+                    let jsonItem = localStorage.getItem(localStorage.key(i));
+                    let item = JSON.parse(jsonItem);
+                    if(typeof item.cv !== undefined)
+                    {
+                        sortableArray[localStorage.key(i)] = {
+                            key: localStorage.key(i),
+                            data: JSON.parse(localStorage.getItem(localStorage.key(i)))
+                        };
+                    }
                 }
                 sortableArray.sort((a, b) => (a.data.date > b.data.date) ? 1 : -1);
                 for (let i = 0; i < MAX_CACHE_SIZE/5; i++) {
@@ -612,13 +645,10 @@
                 }
             },
             searchTracks: function() {
-                $.ajax(ENDPOINT_URL, {
+                $.ajax(ENDPOINT_URL+'/youtube/search', {
                     data: {
                         q: KaraokeUI.getSearchQueryControl().val(),
                         token: APIKey
-                    },
-                    beforeSend: function(xhr){
-                        xhr.setRequestHeader('Access-Control-Allow-Origin', ENDPOINT_URL);
                     },
                     success: function(data) {
                         KaraokeUI.renderTab(data)
