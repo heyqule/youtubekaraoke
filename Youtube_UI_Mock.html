@@ -32,11 +32,14 @@
 <script src="karaoke.js" type="application/javascript"></script>
 <script  type="application/javascript">
 $(document).ready(function() {
-    $('#karaoke-button').click();
-    $('#search_track_dialog').click();
+    $('#karaoke-button').trigger('click');
+    $('#search_track_dialog').trigger('click');
     var position = $('#500_text').position();
     $('.ui-dialog').css('left',(position.left+200)+'px');
     $('.ui-dialog').css('top',position.top+'px');
+
+    $('#karaoke_search_query').val('backstreet');
+    $('#karaoke_search_submit').trigger('click');
 })
 </script>
 </body>
