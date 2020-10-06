@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Youtube HTML5 Karaoke
 // @namespace    http://heyqule.net/
-// @version      0.3.7
+// @version      0.4.0
 // @description  Youtube HTML5 Karaoke, support center cut on regular MV, left/right vocal/instrumental mixed Karaoke MVs.
 // @author       heyqule
 // @match        https://www.youtube.com/watch?*
@@ -15,7 +15,182 @@
 
 (function($) {
     'use strict';
-    let KaraokePlugin = function ($) {
+
+    //Youtube Handler
+    const mediaElement = $('.html5-main-video')[0];
+    const targetContainer = 'div.ytp-right-controls';
+    const primaryPlayer = 'div#primary div#player';
+
+    let KaraokeUI = function ($) {
+        return {
+            menuUI : function() {
+                $(targetContainer).prepend(
+                    $('<button />',{
+                        title: '🎤: Off',
+                        id: 'karaoke-button',
+                        class: 'ytp-karaoke-button ytp-button',
+                        text: '🎤',
+                        style: 'position: relative; top:-0.5em; padding-left:0.25em; font-size:1.5em;',
+                        'aria-haspopup': 'true',
+                        onClick: 'KaraokePluginSwitch();'
+                    })
+                );
+            },
+            controlPanelUI : function(channelAdjustedValue, highPassAdjustedValue, lowPassAdjustedValue, gainAdjustedValue) {
+                let controlPanel = $('<div>',{
+                    id:"karaoke_controlpanel"
+                });
+
+                controlPanel.append($('<h3>',{
+                    text: '🎤 Controls'
+                })).append(
+                    $('<div>',{
+                        id: 'karaoke_controlpanel_message'
+                    })
+                );
+
+                controlPanel.append(
+                    $('<div>',{style:'width:33%; display:inline-block;'}).
+                    append('<label style="width:100px;">Vocal Attenuation: (left - center - right)</label><br />').
+                    append($('<input>',{
+                        type: 'range',
+                        id: 'channelshift',
+                        min: 0,
+                        max: 2,
+                        value: channelAdjustedValue,
+                        step: 1,
+                        onchange: 'KaraokePluginChannelAdjust(this)'
+                    })).
+                    append('<br />').
+                    append('<label style="width:100px;">High Pass: <span id="KaraokeHighPassValue">'+highPassAdjustedValue+'</span> Hz</label><br />').
+                    append($('<input>',{
+                        type: 'range',
+                        id: 'highpass',
+                        min: 50,
+                        max: 400,
+                        value: highPassAdjustedValue,
+                        step: 10,
+                        onchange: 'KaraokePluginHighPassAdjust(this)'
+                    })).
+                    append('<br />').
+                    append('<label style="width:100px;">Low Pass: <span id="KaraokeLowPassValue">'+lowPassAdjustedValue+'</span> Hz</label><br />').
+                    append($('<input>',{
+                        type: 'range',
+                        id: 'lowpass',
+                        min: 4000,
+                        max: 8000,
+                        value: lowPassAdjustedValue,
+                        step: 200,
+                        onchange: 'KaraokePluginLowPassAdjust(this)'
+                    }))
+                );
+
+                controlPanel.append(
+                    $('<div>',{style:'width:33%; display:inline-block;'}).
+                    append('<label style="width:100px;">🎤 Gain: <span id="KaraokeGainValue">'+gainAdjustedValue+'</span></label><br />').
+                    append($('<input>',{
+                        type: 'range',
+                        id: 'micgain',
+                        min: 0,
+                        max: 2,
+                        value: gainAdjustedValue,
+                        step: 0.1,
+                        onchange: 'KaraokePluginMicGainAdjust(this)'
+                    })).
+                    append('<br /><br />').
+                    append($('<input>',{
+                        type: 'button',
+                        id: 'save_setting',
+                        value: 'Save to Cloud',
+                        onclick: 'KaraokePluginSaveToRemote(this)'
+                    })).
+                    append('<br /><br />').
+                    append($('<input>',{
+                        type: 'button',
+                        id: 'search_track_dialog',
+                        value: 'Search Similar Tracks',
+                        onclick: 'KaraokePluginTrackSearch(this)'
+                    }))
+                );
+
+                controlPanel.insertAfter(primaryPlayer);
+
+                return controlPanel
+            },
+            searchUI : function() {
+                let container = $('<div>',{
+                    id: 'karaoke_search_form'
+                })
+
+                let input = $('<input>',{
+                    type: 'input',
+                    id: 'karaoke_search',
+                    placeholder: 'Search Here',
+                });
+                let button = $('<button>',{
+                    id: 'karaoke_search_submit',
+                    html: 'Submit',
+                });
+                let message = $('<p>', {
+                    id: 'karaoke_search_message',
+                });
+
+                container.append(input);
+                container.append(button);
+                container.append(message);
+
+                return container;
+            },
+            resultUI : function() {
+                let container = $('<div>',{
+                    id: 'karaoke_search_result_tabs'
+                });
+                let songs = $('<div>',{
+                    id: 'karaoke_search_result_songs',
+                    html: 'Empty',
+                    css: {
+                        width:'100%-50px',
+                    }
+                });
+                let channels = $('<div>',{
+                    id: 'karaoke_search_result_channels',
+                    html: 'Empty',
+                    css: {
+                        width:'100%-50px',
+                    }
+                });
+                let tabs = $('<ul><li><a href="#karaoke_search_result_songs">Songs</a></li><li><a href="#karaoke_search_result_channels">Channels</a></li></ul>')
+                container.append(tabs)
+                container.append(songs)
+                container.append(channels)
+                container.tabs()
+                return container
+            },
+            searchDialogUI : function() {
+                let trackSearchDialog = $('<div>', {
+                    id: 'track_search',
+                    title: 'Track Search'
+                });
+                trackSearchDialog.append(this.searchUI());
+                trackSearchDialog.append(this.resultUI());
+                $('#karaoke_controlpanel').append(trackSearchDialog)
+                trackSearchDialog.dialog({
+                    open: function( event, ui ) {
+                        $('.ui-dialog').css({
+                            'z-index':'10000',
+                            'width': '50%',
+                            'min-width': '320px',
+                            'height': '50%',
+                            'min-height': '300px'
+                        });
+                    }
+                });
+                return trackSearchDialog;
+            }
+        }
+    }(jQuery)
+
+    let KaraokePlugin = function ($, KaraokeUI) {
         const APIKey = null;
         const MAX_CACHE_SIZE = 5000;
         //webaudio elements
@@ -28,7 +203,7 @@
 
         let _createBiquadFilter = function(type,freq,qValue)
         {
-            var filter = audioContext.createBiquadFilter();
+            let filter = audioContext.createBiquadFilter();
             filter.type = type;
             filter.frequency.value = freq;
             filter.Q.value = qValue;
@@ -116,8 +291,9 @@
          */
         let _micGain = function(amount)
         {
-            $('#KaraokeGainValue').html(amount);
-            console.log($('#KaraokeGainValue').html());
+            let gainElement = $('#KaraokeGainValue')
+            gainElement.html(amount);
+            console.log(gainElement.html());
 
             micSource.disconnect();
 
@@ -236,7 +412,7 @@
         }
 
         return {
-            setupAudioSource : function (mediaElement)
+            setupAudioSource : function ()
             {
                 //setup audio routing
                 try {
@@ -251,7 +427,6 @@
                 return this;
             },
             setupMic: function(primaryPlayer) {
-                var self = this;
                 navigator.mediaDevices.getUserMedia({ audio: true })
                     .then(function(stream) {
                     /* use the stream */
@@ -271,20 +446,9 @@
 
                 return this;
             },
-            setupMenu: function(targetContainer)
+            setupMenu: function()
             {
-                $(targetContainer).prepend(
-                    $('<button />',{
-                        title: '🎤: Off',
-                        id: 'karaoke-button',
-                        class: 'ytp-karaoke-button ytp-button',
-                        text: '🎤',
-                        style: 'position: relative; top:-0.5em; padding-left:0.25em; font-size:1.5em;',
-                        'aria-haspopup': 'true',
-                        onClick: 'KaraokePluginSwitch();'
-                    })
-                );
-
+                KaraokeUI.menuUI();
                 return this;
             },
             filterOn: function() {
@@ -300,20 +464,21 @@
             },
             switch: function()
             {
+                let karaokeButton = $('#karaoke-button');
                 if(karaokeFilterOn)
                 {
                     karaokeFilterOn = false;
                     this.filterOff();
-                    $('#karaoke-button').attr('title','🎤: Off');
-                    $('#karaoke-button').css('background-color','transparent');
+                    karaokeButton.attr('title','🎤: Off');
+                    karaokeButton.css('background-color','transparent');
                     this.removeControlPanel();
                 }
                 else
                 {
                     karaokeFilterOn = true;
                     this.filterOn();
-                    $('#karaoke-button').attr('title','🎤: On');
-                    $('#karaoke-button').css('background-color','#eee');
+                    karaokeButton.attr('title','🎤: On');
+                    karaokeButton.css('background-color','#eee');
                     this.showControlPanel();
                 }
 
@@ -322,84 +487,8 @@
             showControlPanel: function()
             {
                 console.log('showpanel');
-                this.controlPanel = $('<div>',{
-                    id:"karaoke_controlpanel"
-                });
-
-                this.controlPanel.append($('<h3>',{
-                    text: '🎤 Controls'
-                })).append(
-                    $('<div>',{
-                        id: 'karaoke_controlpanel_message'
-                    })
-                );
-
-                this.controlPanel.append(
-                    $('<div>',{style:'width:33%; display:inline-block;'}).
-                    append('<label style="width:100px;">Vocal Attenuation: (left - center - right)</label><br />').
-                    append($('<input>',{
-                        type: 'range',
-                        id: 'channelshift',
-                        min: 0,
-                        max: 2,
-                        value: channelAdjustedValue,
-                        step: 1,
-                        onchange: 'KaraokePluginChannelAdjust(this)'
-                    })).
-                    append('<br />').
-                    append('<label style="width:100px;">High Pass: <span id="KaraokeHighPassValue">'+highPassAdjustedValue+'</span> Hz</label><br />').
-                    append($('<input>',{
-                        type: 'range',
-                        id: 'highpass',
-                        min: 50,
-                        max: 400,
-                        value: highPassAdjustedValue,
-                        step: 10,
-                        onchange: 'KaraokePluginHighPassAdjust(this)'
-                    })).
-                    append('<br />').
-                    append('<label style="width:100px;">Low Pass: <span id="KaraokeLowPassValue">'+lowPassAdjustedValue+'</span> Hz</label><br />').
-                    append($('<input>',{
-                        type: 'range',
-                        id: 'lowpass',
-                        min: 4000,
-                        max: 8000,
-                        value: lowPassAdjustedValue,
-                        step: 200,
-                        onchange: 'KaraokePluginLowPassAdjust(this)'
-                    }))
-                );
-
-                this.controlPanel.append(
-                    $('<div>',{style:'width:33%; display:inline-block;'}).
-                    append('<label style="width:100px;">🎤 Gain: <span id="KaraokeGainValue">'+gainAdjustedValue+'</span></label><br />').
-                    append($('<input>',{
-                        type: 'range',
-                        id: 'micgain',
-                        min: 0,
-                        max: 2,
-                        value: gainAdjustedValue,
-                        step: 0.1,
-                        onchange: 'KaraokePluginMicGainAdjust(this)'
-                    })).
-                    append('<br /><br />').
-                    append($('<input>',{
-                        type: 'button',
-                        id: 'save_setting',
-                        value: 'Save to Cloud',
-                        onclick: 'KaraokePluginSaveToRemote(this)'
-                    })).
-                    append('<br /><br />').
-                    append($('<input>',{
-                        type: 'button',
-                        id: 'search_track_dialog',
-                        value: 'Search Similar Tracks',
-                        onclick: 'KaraokePluginTrackSearch(this)'
-                    }))
-                );
-
-                this.controlPanel.insertAfter(primaryPlayer);
-
+                this.controlPanel = KaraokeUI.controlPanelUI(channelAdjustedValue,
+                    highPassAdjustedValue, lowPassAdjustedValue, gainAdjustedValue);
                 return this;
             },
             removeControlPanel: function()
@@ -426,14 +515,14 @@
             highPassAdjust: function(element)
             {
                 highPassAdjustedValue = parseInt($(element).val());
-                $('#KaraokeHighPassValue').html(highPassAdjustedValue);
+                $('#KaraokeHighPassValue').html(highPassAdjustedValue.toString());
                 _adjustChannel()
                 return this;
             },
             lowPassAdjust: function(element)
             {
                 lowPassAdjustedValue = parseInt($(element).val());
-                $('#KaraokeLowPassValue').html(lowPassAdjustedValue);
+                $('#KaraokeLowPassValue').html(lowPassAdjustedValue.toString());
                 _adjustChannel()
                 return this;
             },
@@ -446,17 +535,7 @@
             {
                 console.log('Open Search');
                 if(trackSearchDialog == null) {
-                    trackSearchDialog = $('<div>', {
-                        id: 'track_search',
-                        title: 'Track Search',
-                        html: '<p>This is the default dialog which is useful for displaying information.</p>'
-                    });
-                    $('#karaoke_controlpanel').append(trackSearchDialog)
-                    trackSearchDialog.dialog({
-                        open: function( event, ui ) {
-                            $('.ui-dialog').css('z-index','10000');
-                        }
-                    });
+                    trackSearchDialog = KaraokeUI.searchDialogUI()
                 }
                 else
                 {
@@ -476,7 +555,7 @@
                 $('#lowpass').val(lowPassAdjustedValue);
             }
         };
-    }(jQuery);
+    }(jQuery, KaraokeUI);
 
     $("head").append (
         '<link '
@@ -485,11 +564,6 @@
     );
 
     if (typeof audioContext === 'undefined') {
-        //Youtube Handler
-        var mediaElement = $('.html5-main-video')[0];
-        var targetContainer = 'div.ytp-right-controls';
-        var primaryPlayer = 'div#primary div#player';
-
         console.log("setting up mic");
         KaraokePlugin.setupMic(primaryPlayer);
         console.log("setting up audio source");
@@ -520,7 +594,6 @@
         }
 
         KaraokePlugin.loadSetting();
-
     }
 
 })(jQuery);
