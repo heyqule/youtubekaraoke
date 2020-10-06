@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Youtube HTML5 Karaoke
 // @namespace    http://heyqule.net/
-// @version      0.4.0
+// @version      0.4.1
 // @description  Youtube HTML5 Karaoke, support center cut on regular MV, left/right vocal/instrumental mixed Karaoke MVs.
 // @author       heyqule
 // @match        https://www.youtube.com/watch?*
@@ -10,6 +10,7 @@
 // @downloadURL  https://raw.githubusercontent.com/heyqule/youtubekaraoke/master/karaoke.js
 // @updateURL    https://raw.githubusercontent.com/heyqule/youtubekaraoke/master/karaoke.js
 // @grant        unsafeWindow
+// @grant        GM.xmlHttpRequest
 // ==/UserScript==
 
 
