@@ -46,7 +46,9 @@
         let controlPanelMessage = $('<div>',{
             id: 'karaoke_controlpanel_message'
         });
+
         let controlPanel, channelAdjustControl, highPassAdjustControl, lowPassAdjustControl, gainAdjustControl;
+        let highPassAdjustDisplay, lowPassAdjustDisplay
         //Search Panel
         let searchQueryControl,searchButtonControl,searchMessageControl,searchSongResultView, searchChannelResultView;
         return {
@@ -132,6 +134,9 @@
 
                 controlPanel.insertAfter(primaryPlayer);
 
+                highPassAdjustDisplay = $('#KaraokeHighPassValue');
+                lowPassAdjustDisplay = $('#KaraokeLowPassValue');
+
                 return controlPanel
             },
             searchUI : function() {
@@ -204,15 +209,6 @@
                 });
                 return trackSearchDialog;
             },
-            getVideoLink: function(type, video_id) {
-                return videoLinkProvider[type].replace('%s',video_id)
-            },
-            getVideoImage: function(type, video_id) {
-                return videoImageProvider[type].replace('%s',video_id)
-            },
-            getChannelLink: function(type, channel_id) {
-                return channelLinkProvider[type].replace('%s',channel_id)
-            },
             songItemUI : function(data) {
                 console.log('render songs');
                 searchSongResultView.empty();
@@ -246,17 +242,61 @@
                 this.songItemUI(data.songs);
                 this.channelItemUI(data.channels);
             },
+            setKaraokeButtonOn: function() {
+                karaokeButton.attr('title','🎤: On');
+                karaokeButton.css('background-color','#eee');
+            },
+            setKaraokeButtonOff: function() {
+                karaokeButton.attr('title','🎤: Off');
+                karaokeButton.css('background-color','transparent');
+            },
+            createErrorState: function(message) {
+                $('<div>',{
+                    class: 'ui-state-error ui-corner-all',
+                    html: message
+                })
+            },
+            createHighlightState: function(message) {
+                $('<div>',{
+                    class: 'ui-state-highlight ui-corner-all',
+                    html: message
+                })
+            },
+            getVideoLink: function(type, video_id) {
+                return videoLinkProvider[type].replace('%s',video_id)
+            },
+            getVideoImage: function(type, video_id) {
+                return videoImageProvider[type].replace('%s',video_id)
+            },
+            getChannelLink: function(type, channel_id) {
+                return channelLinkProvider[type].replace('%s',channel_id)
+            },
             getSearchQueryControl: function() {
                 return searchQueryControl;
             },
             getControlPanelMessageControl: function() {
                 return controlPanelMessage
+            },
+            getChannelAdjustControl: function() {
+                return channelAdjustControl
+            },
+            getHighPassAdjustControl: function() {
+                return highPassAdjustControl
+            },
+            getLowPassAdjustControl: function() {
+                return lowPassAdjustControl
+            },
+            getHighPassAdjustDisplay: function() {
+                return highPassAdjustDisplay;
+            },
+            getLowPassAdjustDisplay: function() {
+                return lowPassAdjustDisplay;
             }
         }
     }(jQuery)
 
     let KaraokePlugin = function ($, KaraokeUI) {
-        const APIKey = 'admin-1234567890';
+        const APE_KEY = 'admin-1234567890';
         const ENDPOINT_URL = 'http://localhost:4567/';
         const MAX_CACHE_SIZE = 5000;
         //webaudio elements
@@ -405,26 +445,55 @@
 
         let _loadSetting = function() {
             let songId = _getSongId();
-            if(typeof songId === undefined) {
+            if(typeof songId === undefined || songId === null) {
                 return;
             }
             let savedItem = JSON.parse(localStorage.getItem(songId));
-            console.log("Loaded "+songId, savedItem);
-            if(savedItem) {
-                channelAdjustedValue = savedItem.cv;
-                lowPassAdjustedValue = savedItem.lpv;
-                highPassAdjustedValue = savedItem.hpv;
-
-                savedItem.date = Date.now();
-                localStorage.setItem(songId, JSON.stringify(savedItem));
+            console.log("Loading "+songId, savedItem);
+            if(savedItem !== null) {
+                touchLocalStorage(songId, savedItem);
             }
-            else if(APIKey) {
+            else if(APE_KEY) {
                 _loadSettingFromRemote(songId)
             }
         }
 
-        let _loadSettingFromRemote = function(videoId) {
+        let touchLocalStorage = function(songId, savedItem) {
+            channelAdjustedValue = savedItem.cv;
+            lowPassAdjustedValue = savedItem.lpv;
+            highPassAdjustedValue = savedItem.hpv;
+
+            savedItem.date = Date.now();
+            localStorage.setItem(songId, JSON.stringify(savedItem));
+        }
+
+        let _loadSettingFromRemote = function(songId) {
+            $.ajax(ENDPOINT_URL+'youtube/get_setting', {
+                data: {
+                    song_id: songId,
+                    token: APE_KEY
+                },
+                success: function(json_data) {
+                    console.log("Remote Loading "+songId);
+                    let data = JSON.parse(json_data)
+                    console.log(data.song_setting);
+                    if (data.success)
+                    {
+                        let setting = JSON.parse(data.song_setting);
+                        touchLocalStorage(songId, setting);
+                        _readjustControls();
+                    }
+                }
+            });
             return this;
+        }
+
+        let _readjustControls = function() {
+            KaraokeUI.getChannelAdjustControl().val(channelAdjustedValue);
+            KaraokeUI.getHighPassAdjustControl().val(highPassAdjustedValue);
+            KaraokeUI.getLowPassAdjustControl().val(lowPassAdjustedValue);
+            KaraokeUI.getHighPassAdjustDisplay().html(highPassAdjustedValue.toString())
+            KaraokeUI.getLowPassAdjustDisplay().html(lowPassAdjustedValue.toString())
         }
 
         let _saveSetting = function() {
@@ -445,7 +514,7 @@
 
         let _SaveSettingToRemote = function() {
             let songId = _getSongId();
-            if(APIKey) {
+            if(APE_KEY) {
                 $.ajax(ENDPOINT_URL+'/youtube/import', {
                     data: {
                         song_setting: {
@@ -455,33 +524,30 @@
                             date: Date.now()
                         },
                         song_id: songId,
-                        token: APIKey
+                        token: APE_KEY
                     },
                     success: function(json_data) {
                         let data = JSON.parse(json_data)
                         if(data.success)
                         {
-                            KaraokeUI.getControlPanelMessageControl().html($('<div>',{
-                                class: 'ui-state-highlight ui-corner-all',
-                                html: data.message
-                            }));
+                            KaraokeUI.getControlPanelMessageControl().html(
+                                KaraokeUI.createHighlightState(data.message)
+                            );
                         }
                         else
                         {
-                            KaraokeUI.getControlPanelMessageControl().html($('<div>',{
-                                class: 'ui-state-error ui-corner-all',
-                                html: data.message
-                            }));
+                            KaraokeUI.getControlPanelMessageControl().html(
+                                KaraokeUI.createErrorState(data.message)
+                            );
                         }
                     }
                 })
             }
             else
             {
-                KaraokeUI.getControlPanelMessageControl().html($('<div>',{
-                    class: 'ui-state-error ui-corner-all',
-                    html: 'You don\'t have permission to save to cloud'
-                }))
+                KaraokeUI.getControlPanelMessageControl().html(
+                    KaraokeUI.createErrorState('You don\'t have permission to save to cloud')
+                )
             }
             return this;
         }
@@ -560,21 +626,18 @@
             },
             switch: function()
             {
-                let karaokeButton = $('#karaoke-button');
                 if(karaokeFilterOn)
                 {
                     karaokeFilterOn = false;
                     this.filterOff();
-                    karaokeButton.attr('title','🎤: Off');
-                    karaokeButton.css('background-color','transparent');
+                    KaraokeUI.setKaraokeButtonOff();
                     this.removeControlPanel();
                 }
                 else
                 {
                     karaokeFilterOn = true;
                     this.filterOn();
-                    karaokeButton.attr('title','🎤: On');
-                    karaokeButton.css('background-color','#eee');
+                    KaraokeUI.setKaraokeButtonOn();
                     this.showControlPanel();
                 }
 
@@ -585,6 +648,7 @@
                 console.log('showpanel');
                 this.controlPanel = KaraokeUI.controlPanelUI(channelAdjustedValue,
                     highPassAdjustedValue, lowPassAdjustedValue, gainAdjustedValue);
+                _loadSetting();
                 return this;
             },
             removeControlPanel: function()
@@ -611,14 +675,14 @@
             highPassAdjust: function(element)
             {
                 highPassAdjustedValue = parseInt($(element).val());
-                $('#KaraokeHighPassValue').html(highPassAdjustedValue.toString());
+                KaraokeUI.getHighPassAdjustDisplay().html(highPassAdjustedValue.toString());
                 _adjustChannel()
                 return this;
             },
             lowPassAdjust: function(element)
             {
                 lowPassAdjustedValue = parseInt($(element).val());
-                $('#KaraokeLowPassValue').html(lowPassAdjustedValue.toString());
+                KaraokeUI.getLowPassAdjustDisplay().html(lowPassAdjustedValue.toString());
                 _adjustChannel()
                 return this;
             },
@@ -645,10 +709,10 @@
                 }
             },
             searchTracks: function() {
-                $.ajax(ENDPOINT_URL+'/youtube/search', {
+                $.ajax(ENDPOINT_URL+'youtube/search', {
                     data: {
                         q: KaraokeUI.getSearchQueryControl().val(),
-                        token: APIKey
+                        token: APE_KEY
                     },
                     success: function(data) {
                         KaraokeUI.renderTab(data)
@@ -657,9 +721,6 @@
             },
             loadSetting: function() {
                 _loadSetting();
-                $('#channelshift').val(channelAdjustedValue);
-                $('#highpass').val(highPassAdjustedValue);
-                $('#lowpass').val(lowPassAdjustedValue);
             }
         };
     }(jQuery, KaraokeUI);
@@ -677,6 +738,7 @@
         KaraokePlugin.setupAudioSource(mediaElement);
         console.log("setting up menu");
         KaraokePlugin.setupMenu(targetContainer);
+        KaraokePlugin.loadSetting();
 
         unsafeWindow.KaraokePluginSwitch = function() {
             KaraokePlugin.switch();
@@ -702,8 +764,6 @@
         unsafeWindow.KaraokePluginSubmitSearch = function() {
             KaraokePlugin.searchTracks();
         }
-
-        KaraokePlugin.loadSetting();
     }
 
 })(jQuery);
