@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Youtube HTML5 Karaoke
 // @namespace    http://heyqule.net/
-// @version      0.6.0
+// @version      0.7.0
 // @description  Youtube HTML5 Karaoke, support center cut on regular MV, left/right vocal/instrumental mixed Karaoke MVs.
 // @author       heyqule
 // @match        https://www.youtube.com/watch?*
@@ -17,7 +17,14 @@
 (function($) {
     'use strict';
 
-    const API_KEY = 'admin-1234567890';
+    const API_KEY = localStorage.getItem('KARAOKE_API_KEY') || function() {
+        let key = 'admin-1234567890';
+        if(key) {
+            localStorage.setItem('KARAOKE_API_KEY', key);
+        }
+        return key;
+    }();
+
     //Youtube Handler
     const mediaElement = $('.html5-main-video')[0];
     const targetContainer = 'div.ytp-right-controls';
@@ -296,9 +303,9 @@
                 return lowPassAdjustDisplay;
             }
         }
-    }(jQuery, API_KEY)
+    }(jQuery)
 
-    let KaraokePlugin = function ($, KaraokeUI, API_KEY) {
+    let KaraokePlugin = function ($, KaraokeUI) {
         const ENDPOINT_URL = 'http://localhost:4567/';
         const MAX_CACHE_SIZE = 5000;
         //webaudio elements
@@ -500,7 +507,9 @@
 
         let _saveSetting = function() {
             let songId = _getSongId();
-            if(typeof songId === undefined) {
+            console.log("API_KEY");
+            console.log(API_KEY);
+            if(songId === null || API_KEY === null) {
                 return;
             }
             let data = {
