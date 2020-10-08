@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Youtube HTML5 Karaoke
 // @namespace    http://heyqule.net/
-// @version      0.5.0
+// @version      0.6.0
 // @description  Youtube HTML5 Karaoke, support center cut on regular MV, left/right vocal/instrumental mixed Karaoke MVs.
 // @author       heyqule
 // @match        https://www.youtube.com/watch?*
@@ -17,6 +17,7 @@
 (function($) {
     'use strict';
 
+    const API_KEY = 'admin-1234567890';
     //Youtube Handler
     const mediaElement = $('.html5-main-video')[0];
     const targetContainer = 'div.ytp-right-controls';
@@ -112,25 +113,27 @@
                     append(lowPassAdjustControl)
                 );
 
-                controlPanel.append(
-                    $('<div>',{style:'width:33%; display:inline-block;'}).
-                    append('<label style="width:100px;">🎤 Gain: <span id="KaraokeGainValue">'+gainAdjustedValue+'</span></label><br />').
+
+                let secondColumn = $('<div>',{style:'width:33%; display:inline-block;'});
+
+                secondColumn.append('<label style="width:100px;">🎤 Gain: <span id="KaraokeGainValue">'+gainAdjustedValue+'</span></label><br />').
                     append(gainAdjustControl).
-                    append('<br /><br />').
-                    append($('<input>',{
+                    append('<br /><br />');
+
+                if(API_KEY) {
+                    secondColumn.append($('<input>', {
                         type: 'button',
                         id: 'save_setting',
                         value: 'Save to Cloud',
                         onclick: 'KaraokePluginSaveToRemote(this)'
-                    })).
-                    append('<br /><br />').
-                    append($('<input>',{
+                    })).append('<br /><br />').append($('<input>', {
                         type: 'button',
                         id: 'search_track_dialog',
                         value: 'Search Similar Tracks',
                         onclick: 'KaraokePluginOpenSearchView(this)'
                     }))
-                );
+                }
+                controlPanel.append(secondColumn);
 
                 controlPanel.insertAfter(primaryPlayer);
 
@@ -230,8 +233,8 @@
                 {
                     let block = $('<div>',{style:'margin:0.5em; display:inline-block; width:320px;'});
                     let link = $('<a>',{href: this.getChannelLink('youtube',data[i].channel_id)});
-                    let img = $('<img>',{src: 'https://yt3.ggpht.com/a/AATXAJw0bAZxa07czhl_qojz4tpyht9RaD1tTdR9hqeqMw=s88-c-k-c0xffffffff-no-rj-mo', style:'vertical-align:middle;'});
-                    link.append(img).append($('<span>',{html:data[i].name}));
+                    let img = $('<img>',{src: data[i].thumbnail_url, style:'vertical-align:middle;'});
+                    link.append(img).append($('<span>',{html:data[i].name+' ('+data[i].country+')'}));
                     block.append(link);
 
                     searchChannelResultView.append(block);
@@ -293,10 +296,9 @@
                 return lowPassAdjustDisplay;
             }
         }
-    }(jQuery)
+    }(jQuery, API_KEY)
 
-    let KaraokePlugin = function ($, KaraokeUI) {
-        const APE_KEY = 'admin-1234567890';
+    let KaraokePlugin = function ($, KaraokeUI, API_KEY) {
         const ENDPOINT_URL = 'http://localhost:4567/';
         const MAX_CACHE_SIZE = 5000;
         //webaudio elements
@@ -453,7 +455,7 @@
             if(savedItem !== null) {
                 touchLocalStorage(songId, savedItem);
             }
-            else if(APE_KEY) {
+            else if(API_KEY) {
                 _loadSettingFromRemote(songId)
             }
         }
@@ -471,7 +473,7 @@
             $.ajax(ENDPOINT_URL+'youtube/get_setting', {
                 data: {
                     song_id: songId,
-                    token: APE_KEY
+                    token: API_KEY
                 },
                 success: function(json_data) {
                     console.log("Remote Loading "+songId);
@@ -514,7 +516,7 @@
 
         let _SaveSettingToRemote = function() {
             let songId = _getSongId();
-            if(APE_KEY) {
+            if(API_KEY) {
                 $.ajax(ENDPOINT_URL+'/youtube/import', {
                     data: {
                         song_setting: {
@@ -524,7 +526,7 @@
                             date: Date.now()
                         },
                         song_id: songId,
-                        token: APE_KEY
+                        token: API_KEY
                     },
                     success: function(json_data) {
                         let data = JSON.parse(json_data)
@@ -712,7 +714,7 @@
                 $.ajax(ENDPOINT_URL+'youtube/search', {
                     data: {
                         q: KaraokeUI.getSearchQueryControl().val(),
-                        token: APE_KEY
+                        token: API_KEY
                     },
                     success: function(data) {
                         KaraokeUI.renderTab(data)
