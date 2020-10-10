@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Youtube HTML5 Karaoke
 // @namespace    http://heyqule.net/
-// @version      0.8.1
+// @version      0.9.1
 // @description  Youtube HTML5 Karaoke, support center cut on regular MV, left/right vocal/instrumental mixed Karaoke MVs.
 // @author       heyqule
 // @match        https://www.youtube.com/watch?*
@@ -262,16 +262,24 @@
                 karaokeButton.css('background-color','transparent');
             },
             createErrorState: function(message) {
-                $('<div>',{
+                return $('<div>',{
                     class: 'ui-state-error ui-corner-all',
                     html: message
                 })
             },
             createHighlightState: function(message) {
-                $('<div>',{
+                return $('<div>',{
                     class: 'ui-state-highlight ui-corner-all',
                     html: message
                 })
+            },
+            setControllerMessage: function(messageBlock) {
+                let self = this;
+                this.getControlPanelMessageControl().empty();
+                this.getControlPanelMessageControl().append(messageBlock);
+                setTimeout(function() {
+                    self.getControlPanelMessageControl().empty();
+                }, 10000);
             },
             getVideoLink: function(type, video_id) {
                 return videoLinkProvider[type].replace('%s',video_id)
@@ -467,7 +475,11 @@
             if(typeof songId === undefined || songId === null) {
                 return;
             }
-            let savedItem = JSON.parse(localStorage.getItem(songId));
+            let localSetting = localStorage.getItem(songId);
+            let savedItem = null;
+            if(localSetting !== null) {
+                savedItem = JSON.parse(localSetting);
+            }
             console.log("Loading "+songId, savedItem);
             if(savedItem !== null) {
                 touchLocalStorage(songId, savedItem);
@@ -488,13 +500,17 @@
 
         let _loadSettingFromRemote = function(songId) {
             $.ajax(ENDPOINT_URL+'youtube/get_setting', {
+                type: 'GET',
                 data: {
                     song_id: songId,
                     token: API_KEY
                 },
                 success: function(json_data) {
-                    console.log("Remote Loading "+songId);
-                    let data = JSON.parse(json_data)
+                    if (typeof json_data === 'undefined' || json_data === null) {
+                        return;
+                    }
+
+                    let data = JSON.parse(json_data);
                     console.log(data.song_setting);
                     if (data.success)
                     {
@@ -536,28 +552,33 @@
         let _SaveSettingToRemote = function() {
             let songId = _getSongId();
             if(API_KEY) {
-                $.ajax(ENDPOINT_URL+'/youtube/import', {
+                $.ajax(ENDPOINT_URL+'youtube/import', {
+                    type: 'POST',
                     data: {
                         song_setting: {
                             cv: channelAdjustedValue,
                             lpv: lowPassAdjustedValue,
-                            hpv: highPassAdjustedValue,
-                            date: Date.now()
+                            hpv: highPassAdjustedValue
                         },
                         song_id: songId,
                         token: API_KEY
                     },
                     success: function(json_data) {
+                        if (typeof json_data === 'undefined' || json_data === null) {
+                            KaraokeUI.createErrorState('Unable to save your setting.');
+                            return;
+                        }
+
                         let data = JSON.parse(json_data)
                         if(data.success)
                         {
-                            KaraokeUI.getControlPanelMessageControl().html(
+                            KaraokeUI.setControllerMessage(
                                 KaraokeUI.createHighlightState(data.message)
                             );
                         }
                         else
                         {
-                            KaraokeUI.getControlPanelMessageControl().html(
+                            KaraokeUI.setControllerMessage(
                                 KaraokeUI.createErrorState(data.message)
                             );
                         }
@@ -566,7 +587,7 @@
             }
             else
             {
-                KaraokeUI.getControlPanelMessageControl().html(
+                KaraokeUI.setControllerMessage(
                     KaraokeUI.createErrorState('You don\'t have permission to save to cloud')
                 )
             }
@@ -731,6 +752,7 @@
             },
             searchTracks: function() {
                 $.ajax(ENDPOINT_URL+'youtube/search', {
+                    type: 'GET',
                     data: {
                         q: KaraokeUI.getSearchQueryControl().val(),
                         token: API_KEY
