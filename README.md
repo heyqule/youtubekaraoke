@@ -33,11 +33,11 @@ Attenuate vocal on youtube MVs
 #Limitations
 Not all songs are compatible with this plugin.
 
-Orignally MVs usually work the best 
+Orignally MVs usually work the best, kind of...
 <br />https://youtu.be/LWV-f6dMN3Q?t=60 (林俊傑 JJ Lin - 修煉愛情 Practice Love)
 <br />https://www.youtube.com/watch?v=ZSM3w1v-A_Y (Timbaland - Apologize ft. OneRepublic)
 
-Too many details lost with rock/metal  / 
+Too many details lost with rock/metal or beats heavy songs 
 <br />
 https://www.youtube.com/watch?v=eVTXPUF4Oz4 (Linkin Park - In the end)
 https://www.youtube.com/watch?v=5NPBIwQyPWE (Avril Lavigne - Complicated)
