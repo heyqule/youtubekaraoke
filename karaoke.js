@@ -18,7 +18,7 @@
     'use strict';
 
     const API_KEY = localStorage.getItem('KARAOKE_API_KEY') || function() {
-        let key = 'read-1234567890';
+        let key = '';
         if(key) {
             localStorage.setItem('KARAOKE_API_KEY', key);
         }
