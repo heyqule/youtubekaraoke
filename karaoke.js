@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Youtube HTML5 Karaoke
 // @namespace    http://heyqule.net/
-// @version      0.9.1
+// @version      0.10.0
 // @description  Youtube HTML5 Karaoke, support center cut on regular MV, left/right vocal/instrumental mixed Karaoke MVs.
 // @author       heyqule
 // @match        https://www.youtube.com/watch?*
@@ -18,7 +18,7 @@
     'use strict';
 
     const API_KEY = localStorage.getItem('KARAOKE_API_KEY') || function() {
-        let key = 'admin-1234567890';
+        let key = 'read-1234567890';
         if(key) {
             localStorage.setItem('KARAOKE_API_KEY', key);
         }
@@ -77,7 +77,7 @@
                     type: 'range',
                     id: 'channelshift',
                     min: 0,
-                    max: 2,
+                    max: 3,
                     value: channelAdjustedValue,
                     step: 1,
                     onchange: 'KaraokePluginChannelAdjust(this)'
@@ -111,7 +111,7 @@
                 })
                 controlPanel.append(
                     $('<div>',{style:'width:33%; display:inline-block;'}).
-                    append('<label style="width:100px;">Vocal Attenuation: (left - center - right)</label><br />').
+                    append('<label style="width:100px;">Vocal Attenuation: (left - center1 - center2 - right)</label><br />').
                     append(channelAdjustControl).
                     append('<br />').
                     append('<label style="width:100px;">High Pass: <span id="KaraokeHighPassValue">'+highPassAdjustedValue+'</span> Hz</label><br />').
@@ -125,8 +125,8 @@
                 let secondColumn = $('<div>',{style:'width:33%; display:inline-block;'});
 
                 secondColumn.append('<label style="width:100px;">🎤 Gain: <span id="KaraokeGainValue">'+gainAdjustedValue+'</span></label><br />').
-                    append(gainAdjustControl).
-                    append('<br /><br />');
+                append(gainAdjustControl).
+                append('<br /><br />');
 
                 if(API_KEY) {
                     secondColumn.append($('<input>', {
@@ -333,7 +333,6 @@
         let highPassAdjustedValue = 200, lowPassAdjustedValue = 6000
         let trackSearchDialog = null;
 
-
         let _createBiquadFilter = function(type,freq,qValue)
         {
             let filter = audioContext.createBiquadFilter();
@@ -342,15 +341,17 @@
             filter.Q.value = qValue;
             return filter;
         }
+
         /**
-        *  Cut common vocal frequencies @ center
-        */
-        let _cutCenter = function()
+         *  Cut common vocal frequencies @ center
+         *  Algo origin: https://github.com/stanton119/YouTube-Karaoke
+         */
+        let _cutCenterV1 = function()
         {
             //cutoff frequencies
             let f1 = highPassAdjustedValue;
             let f2 = lowPassAdjustedValue;
-            console.log('setting center cut @'+f1+' - '+f2);
+            console.log('setting center cut v1 @'+f1+' - '+f2);
             //splitter and gains
             let splitter, gainL, gainR;
             //biquadFilters
@@ -368,12 +369,13 @@
             gainR.connect(audioContext.destination);
             //biquad filters
             filterLP1 = _createBiquadFilter("lowpass",f2,1);
-            filterHP1 = _createBiquadFilter("highpass",f1,1);
-            filterLP3 = _createBiquadFilter("lowpass",f2,1);
-            filterHP3 = _createBiquadFilter("highpass",f1,1);
             filterLP2 = _createBiquadFilter("lowpass",f1,1);
-            filterHP2 = _createBiquadFilter("highpass",f2,1);
+            filterLP3 = _createBiquadFilter("lowpass",f2,1);
             filterLP4 = _createBiquadFilter("lowpass",f1,1);
+
+            filterHP1 = _createBiquadFilter("highpass",f1,1);
+            filterHP2 = _createBiquadFilter("highpass",f2,1);
+            filterHP3 = _createBiquadFilter("highpass",f1,1);
             filterHP4 = _createBiquadFilter("highpass",f2,1);
             //connect filters
             audioSource.connect(filterLP1);
@@ -390,8 +392,97 @@
         }
 
         /**
-        * Expand left channel to both channel, drop right channel
-        */
+         *  Cut common vocal frequencies @ center with preserve stereo field
+         *  Algo origin: https://github.com/stanton119/YouTube-Karaoke
+         */
+        let _cutCenterV2 = function()
+        {
+            //cutoff frequencies
+            let f1 = highPassAdjustedValue;
+            let f2 = lowPassAdjustedValue;
+
+            console.log('setting center cut with stereo field @'+f1+' - '+f2);
+            // stereo conversion
+            let merger = audioContext.createChannelMerger(2);
+            merger.connect(audioContext.destination);
+
+            // L_Out = (Mid+side)/2
+            let gainNodeMS1_05 = audioContext.createGain();
+            gainNodeMS1_05.gain.value = 0.5;
+            gainNodeMS1_05.connect(merger,0,0);
+
+            // R_Out = (Mid-side)/2
+            let gainNodeMS2_05 = audioContext.createGain();
+            gainNodeMS2_05.gain.value = 0.5;
+            gainNodeMS2_05.connect(merger,0,1);
+
+            let gainNodeS_1 = audioContext.createGain();
+            gainNodeS_1.gain.value = -1;
+            gainNodeS_1.connect(gainNodeMS2_05);
+
+            // create band stop filter using two cascaded biquads
+            // inputs -> FilterLP1 & FilterLP2
+            // outputs -> splitter & destinations
+
+            // Bandstop filter = LP + HP
+            let FilterLP1 = _createBiquadFilter('lowpass', f1, 1);
+            let FilterLP2 = _createBiquadFilter('lowpass', f1, 1);
+            FilterLP1.connect(FilterLP2);
+
+            let FilterHP1 = _createBiquadFilter('highpass', f2, 1);
+            let FilterHP2 = _createBiquadFilter('highpass', f2, 1);
+            FilterHP1.connect(FilterHP2);
+
+            // connect filters to left and right outputs
+            FilterLP2.connect(gainNodeMS1_05);
+            FilterHP2.connect(gainNodeMS1_05);
+            FilterLP2.connect(gainNodeMS2_05);
+            FilterHP2.connect(gainNodeMS2_05);
+
+            // band pass with gain, adds mids into the side channel
+            let gainNodeBP = audioContext.createGain();
+            gainNodeBP.gain.value = 1;
+            let FilterBP1 = _createBiquadFilter('lowpass', f2, 1);
+            let FilterBP2 = _createBiquadFilter('lowpass', f2, 1);
+            FilterBP2.connect(FilterBP1);
+
+            let FilterBP3 = _createBiquadFilter('highpass', f1, 1);
+            FilterBP3.connect(FilterBP2);
+
+            let FilterBP4 = _createBiquadFilter('highpass', f1, 1);
+            FilterBP4.connect(FilterBP3);
+
+            FilterBP1.connect(gainNodeBP);
+            gainNodeBP.connect(gainNodeS_1);
+            gainNodeBP.connect(gainNodeMS1_05);
+
+            // mid-side conversion
+            // split into L/R
+            let splitter = audioContext.createChannelSplitter(2);
+            // mid = L+R
+            splitter.connect(FilterLP1,0); // // L->filter
+            splitter.connect(FilterHP1,0);
+            splitter.connect(FilterLP1,1); // R->filter
+            splitter.connect(FilterHP1,1);
+
+            // side = L-R, 2 outputs, 2 destinations
+            let gainNodeR_1 = audioContext.createGain();
+            gainNodeR_1.gain.value = -1;
+            splitter.connect(gainNodeR_1,1);
+
+            gainNodeR_1.connect(gainNodeS_1);
+            splitter.connect(gainNodeS_1,0);
+            gainNodeR_1.connect(gainNodeMS1_05);
+            splitter.connect(gainNodeMS1_05,0);
+
+            gainNodeR_1.connect(FilterBP4);
+            splitter.connect(FilterBP4,0);
+            audioSource.connect(splitter);
+        }
+
+        /**
+         * Expand left channel to both channel, drop right channel
+         */
         let _cutRight = function()
         {
             console.log('setting right cut');
@@ -404,8 +495,8 @@
         }
 
         /**
-        * Expand right channel to both channel, drop left channel
-        */
+         * Expand right channel to both channel, drop left channel
+         */
         let _cutLeft = function()
         {
             console.log('setting left cut');
@@ -438,7 +529,7 @@
         }
 
         /**
-          * 0 = left cut, 1 = center cut, 2 = right cut
+         * 0 = left cut, 1 = center cut v2, 2 = center cut v1, 2 = right cut
          **/
         let _adjustChannel = function()
         {
@@ -449,9 +540,12 @@
                     _cutLeft();
                     break;
                 case 1:
-                    _cutCenter()
+                    _cutCenterV2();
                     break;
                 case 2:
+                    _cutCenterV1();
+                    break;
+                case 3:
                     _cutRight();
                     break;
             }
@@ -633,20 +727,20 @@
             setupMic: function(primaryPlayer) {
                 navigator.mediaDevices.getUserMedia({ audio: true })
                     .then(function(stream) {
-                    /* use the stream */
-                    window.AudioContext = window.AudioContext || window.webkitAudioContext;
-                    micAudioContext = new AudioContext();
-                    console.log('Mic Latency:'+micAudioContext.baseLatency);
+                        /* use the stream */
+                        window.AudioContext = window.AudioContext || window.webkitAudioContext;
+                        micAudioContext = new AudioContext();
+                        console.log('Mic Latency:'+micAudioContext.baseLatency);
 
-                    // Create an AudioNode from the stream.
-                    micSource = micAudioContext.createMediaStreamSource( stream );
+                        // Create an AudioNode from the stream.
+                        micSource = micAudioContext.createMediaStreamSource( stream );
 
-                    // Connect it to the destination to hear yourself (or any other node for processing!)
-                    micSource.connect( micAudioContext.destination );
-                })
+                        // Connect it to the destination to hear yourself (or any other node for processing!)
+                        micSource.connect( micAudioContext.destination );
+                    })
                     .catch(function(err) {
-                    /* handle the error */
-                });
+                        /* handle the error */
+                    });
 
                 return this;
             },
