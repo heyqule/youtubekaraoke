@@ -54,7 +54,7 @@ The result from concerts MVs are usually not as good.
 <br /> https://www.youtube.com/watch?v=Ri7-vnrJD3k (Adele - Set Fire To The Rain (Live at The Royal Albert Hall))
 
 # Credits
-Center attenuation functions made by Richard Stanton 
+Center vocal attenuation functions made by Richard Stanton 
 <br /> https://github.com/stanton119/YouTube-Karaoke
 
 This software licensed under MIT License.
