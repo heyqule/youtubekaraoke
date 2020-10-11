@@ -1,5 +1,5 @@
 # Youtube Karaoke
-Attenuate vocal on youtube MVs
+Attenuate vocal on youtube Music videos.
 
 # How it looks on your Youtube Player
 ![how it look](lookonyoutube.png)
@@ -17,23 +17,22 @@ Attenuate vocal on youtube MVs
 * ???
 * Profit
 
-#Features
+# Features
 - Support center cut
 - Support left or right cut from 90s KTV videos
     - https://www.youtube.com/watch?v=Hm1cQlvBTz0  (set to right channel attenuation) (盧巧音 - 好心分手) 
 - Support mic gain if mic is connect via browser    
-- Support per song setting save as localstorage
+- Support per song setting save to localStorage (5000 tracks by default)
     
-#Experimental Features (requires API key)
-------------
+# Experimental Features (requires an API key)
 * Save setting to Cloud
 * Automatically load your setting from Cloud
 * Search other tracks from Cloud, instead of youtube
  
-#Limitations
+# Limitations
 Not all songs are compatible with this plugin.
 
-Orignally MVs usually work the best, kind of...
+Orignally MVs usually work the best, kind of... excpet snares to sound funny / missing
 <br />https://youtu.be/LWV-f6dMN3Q?t=60 (林俊傑 JJ Lin - 修煉愛情 Practice Love)
 <br />https://www.youtube.com/watch?v=ZSM3w1v-A_Y (Timbaland - Apologize ft. OneRepublic)
 
@@ -42,7 +41,7 @@ Too many details lost with rock/metal or beats heavy songs
 https://www.youtube.com/watch?v=eVTXPUF4Oz4 (Linkin Park - In the end)
 https://www.youtube.com/watch?v=5NPBIwQyPWE (Avril Lavigne - Complicated)
 
-Snare sounds funny.. in fact, many parts sound funny lol.
+Snare sounds funny in raps... in fact, many parts sound funny lol.
 https://www.youtube.com/watch?v=YVkUvmDQ3HY (Eminem - Without Me)
 https://www.youtube.com/watch?v=VYOjWnS4cMY (Childish Gambino - This Is America)
 
@@ -58,3 +57,4 @@ The result from concerts MVs are usually not as good.
 Center attenuation functions made by Richard Stanton 
 <br /> https://github.com/stanton119/YouTube-Karaoke
 
+This software is licensed under MIT License.
