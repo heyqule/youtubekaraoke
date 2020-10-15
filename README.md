@@ -25,9 +25,9 @@ Attenuate vocal on youtube Music videos.
 - Support per song setting save to localStorage (5000 tracks by default)
     
 # Experimental Features (requires an API key)
-* Save setting to Cloud
-* Automatically load your setting from Cloud
-* Search other tracks from Cloud, instead of youtube
+* Save setting to cloud
+* Automatically load your setting from cloud
+* Search other tracks from cloud, instead of youtube, for official MVs
  
 # Limitations
 Not all songs are compatible with this plugin.
