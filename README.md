@@ -57,4 +57,4 @@ The result from concerts MVs are usually not as good.
 Center vocal attenuation functions made by Richard Stanton 
 <br /> https://github.com/stanton119/YouTube-Karaoke
 
-This software licensed under MIT License.
+This software licensed under GNU General Public License v3.0.
