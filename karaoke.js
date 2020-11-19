@@ -17,13 +17,7 @@
 (function($) {
     'use strict';
 
-    const API_KEY = localStorage.getItem('KARAOKE_API_KEY') || function() {
-        let key = '';
-        if(key) {
-            localStorage.setItem('KARAOKE_API_KEY', key);
-        }
-        return key;
-    }();
+    const API_KEY = '';
     const PRODUCTION = true;
 
     //Youtube Handler
