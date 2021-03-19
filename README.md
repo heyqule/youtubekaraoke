@@ -6,8 +6,6 @@ Attenuate vocal on youtube Music videos.
 
 # SETUP
 * Download TamperMonkey for [Chrome](https://chrome.google.com/webstore/detail/tampermonkey/dhdgffkkebhmkfjojejmpbldmpobfkfo?hl=en) or your default browser
-* Open dashboard and add a new script
-    * ![set up script](setupscript.png)
 * Go to https://greasyfork.org/en/scripts/423603-youtube-html5-karaoke and click the install button
 * Find a mv on youtube and test it out
    * If you don't see the mic icon, try fresh the tab.
