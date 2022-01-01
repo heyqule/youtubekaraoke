@@ -1,14 +1,11 @@
 // ==UserScript==
 // @name         Youtube HTML5 Karaoke
 // @namespace    https://github.com/heyqule/youtubekaraoke
-// @version      0.11.0
+// @version      1.0.0
 // @description  Youtube HTML5 Karaoke, support center cut on regular MV, left/right vocal/instrumental mixed Karaoke MVs.
 // @author       heyqule
 // @match        https://www.youtube.com/watch?*
 // @require      https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js
-// @require      https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js
-// @downloadURL  https://raw.githubusercontent.com/heyqule/youtubekaraoke/master/karaoke.js
-// @updateURL    https://raw.githubusercontent.com/heyqule/youtubekaraoke/master/karaoke.js
 // @grant        unsafeWindow
 // @grant        GM.xmlHttpRequest
 // ==/UserScript==
@@ -17,23 +14,11 @@
 (function($) {
     'use strict';
 
-    const API_KEY = '';
-    const PRODUCTION = true;
-
     //Youtube Handler
     const mediaElement = $('.html5-main-video')[0];
     const targetContainer = 'div.ytp-right-controls';
     const primaryPlayer = 'div#primary div#player';
 
-    const videoLinkProvider = {
-        youtube: 'https://www.youtube.com/watch?v=%s'
-    };
-    const videoImageProvider = {
-        youtube: 'https://i.ytimg.com/vi/%s/hqdefault.jpg'
-    };
-    const channelLinkProvider = {
-        youtube: 'https://www.youtube.com/channel/%s'
-    };
 
     let KaraokeUI = function ($) {
         let karaokeButton = $('<button />',{
@@ -41,19 +26,14 @@
             id: 'karaoke-button',
             class: 'ytp-karaoke-button ytp-button',
             text: '🎤',
-            style: 'position: relative; top:-0.5em; padding-left:0.25em; font-size:1.5em;',
+            style: 'position: relative; top:-1.5rem; padding-left:1rem; font-size:2rem;',
             'aria-haspopup': 'true',
             onClick: 'KaraokePluginSwitch();'
         });
         //Control Panel
-        let controlPanelMessage = $('<div>',{
-            id: 'karaoke_controlpanel_message'
-        });
-
         let controlPanel, channelAdjustControl, highPassAdjustControl, lowPassAdjustControl, gainAdjustControl;
         let highPassAdjustDisplay, lowPassAdjustDisplay
-        //Search Panel
-        let searchQueryControl,searchButtonControl,searchMessageControl,searchSongResultView, searchChannelResultView;
+
         return {
             menuUI : function() {
                 $(targetContainer).prepend(karaokeButton);
@@ -65,7 +45,7 @@
 
                 controlPanel.append($('<h3>',{
                     text: '🎤 Controls'
-                })).append(controlPanelMessage);
+                }));
 
                 channelAdjustControl = $('<input>',{
                     type: 'range',
@@ -122,19 +102,6 @@
                 append(gainAdjustControl).
                 append('<br /><br />');
 
-                if(API_KEY) {
-                    secondColumn.append($('<input>', {
-                        type: 'button',
-                        id: 'save_setting',
-                        value: 'Save to Cloud',
-                        onclick: 'KaraokePluginSaveToRemote(this)'
-                    })).append('<br /><br />').append($('<input>', {
-                        type: 'button',
-                        id: 'search_track_dialog',
-                        value: 'Search Similar Tracks',
-                        onclick: 'KaraokePluginOpenSearchView(this)'
-                    }))
-                }
                 controlPanel.append(secondColumn);
 
                 controlPanel.insertAfter(primaryPlayer);
@@ -144,109 +111,6 @@
 
                 return controlPanel
             },
-            searchUI : function() {
-                let container = $('<div>',{
-                    id: 'karaoke_search_form'
-                })
-
-                searchQueryControl = $('<input>',{
-                    type: 'input',
-                    id: 'karaoke_search_query',
-                    placeholder: 'Search Here',
-                });
-                searchButtonControl = $('<button>',{
-                    id: 'karaoke_search_submit',
-                    html: 'Submit',
-                    onclick: 'KaraokePluginSubmitSearch()'
-                });
-                searchMessageControl = $('<p>', {
-                    id: 'karaoke_search_message',
-                });
-
-                container.append(searchQueryControl).append(' ');
-                container.append(searchButtonControl);
-                container.append(searchMessageControl);
-
-                return container;
-            },
-            resultUI : function() {
-                let container = $('<div>',{
-                    id: 'karaoke_search_result_tabs'
-                });
-                searchSongResultView = $('<div>',{
-                    id: 'karaoke_search_result_songs',
-                    html: 'Empty',
-                    css: {
-                        width:'calc(100%-50px)',
-                    }
-                });
-                searchChannelResultView = $('<div>',{
-                    id: 'karaoke_search_result_channels',
-                    html: 'Empty',
-                    css: {
-                        width:'calc(100%-50px)',
-                    }
-                });
-                let tabs = $('<ul><li><a href="#karaoke_search_result_songs">Songs</a></li><li><a href="#karaoke_search_result_channels">Channels</a></li></ul>')
-                container.append(tabs)
-                container.append(searchSongResultView)
-                container.append(searchChannelResultView)
-                container.tabs()
-                return container
-            },
-            searchDialogUI : function() {
-                let trackSearchDialog = $('<div>', {
-                    id: 'track_search',
-                    title: 'Track Search'
-                });
-                trackSearchDialog.append(this.searchUI());
-                trackSearchDialog.append(this.resultUI());
-                controlPanel.append(trackSearchDialog)
-                trackSearchDialog.dialog({
-                    open: function( event, ui ) {
-                        $('.ui-dialog').css({
-                            'z-index':'10000',
-                            'width': '860px',
-                            'min-width': '320px',
-                            'max-height': '1000px',
-                        });
-                    }
-                });
-                return trackSearchDialog;
-            },
-            songItemUI : function(data) {
-                console.log('render songs');
-                searchSongResultView.empty();
-                for(let i = 0; i < data.length; i++)
-                {
-                    let block = $('<div>',{style:"display:grid; width:240px; height:180px; margin:5px; float:left;"})
-                    let img = $('<img>',{src: this.getVideoImage('youtube',data[i].song_id),width:240, height:180});
-                    let link = $('<a>',{href: this.getVideoLink('youtube',data[i].song_id)})
-                    link.append(img).append('<br />').append($('<span>',{html:data[i].name,style:'display:inline-block; position:relative; top:-80px; color:white; background-color:rgba(0,0,0,0.75); width:calc(100%-10px); max-height:60px; height:60px; overflow:hidden; padding:5px;'}));
-                    block.append(link)
-                    searchSongResultView.append(block);
-                }
-                searchSongResultView.append($('<div>',{style:'clear:both'}));
-            },
-            channelItemUI : function(data) {
-                console.log('render channel');
-                searchChannelResultView.empty();
-                for(let i = 0; i < data.length; i++)
-                {
-                    let block = $('<div>',{style:'margin:0.5em; display:inline-block; width:320px;'});
-                    let link = $('<a>',{href: this.getChannelLink('youtube',data[i].channel_id)});
-                    let img = $('<img>',{src: data[i].thumbnail_url, style:'vertical-align:middle;'});
-                    link.append(img).append($('<span>',{html:data[i].name+' ('+data[i].country+')'}));
-                    block.append(link);
-
-                    searchChannelResultView.append(block);
-                }
-            },
-            renderTab: function(json_data) {
-                let data = JSON.parse(json_data);
-                this.songItemUI(data.songs);
-                this.channelItemUI(data.channels);
-            },
             setKaraokeButtonOn: function() {
                 karaokeButton.attr('title','🎤: On');
                 karaokeButton.css('background-color','#eee');
@@ -254,41 +118,6 @@
             setKaraokeButtonOff: function() {
                 karaokeButton.attr('title','🎤: Off');
                 karaokeButton.css('background-color','transparent');
-            },
-            createErrorState: function(message) {
-                return $('<div>',{
-                    class: 'ui-state-error ui-corner-all',
-                    html: message
-                })
-            },
-            createHighlightState: function(message) {
-                return $('<div>',{
-                    class: 'ui-state-highlight ui-corner-all',
-                    html: message
-                })
-            },
-            setControllerMessage: function(messageBlock) {
-                let self = this;
-                this.getControlPanelMessageControl().empty();
-                this.getControlPanelMessageControl().append(messageBlock);
-                setTimeout(function() {
-                    self.getControlPanelMessageControl().empty();
-                }, 10000);
-            },
-            getVideoLink: function(type, video_id) {
-                return videoLinkProvider[type].replace('%s',video_id)
-            },
-            getVideoImage: function(type, video_id) {
-                return videoImageProvider[type].replace('%s',video_id)
-            },
-            getChannelLink: function(type, channel_id) {
-                return channelLinkProvider[type].replace('%s',channel_id)
-            },
-            getSearchQueryControl: function() {
-                return searchQueryControl;
-            },
-            getControlPanelMessageControl: function() {
-                return controlPanelMessage
             },
             getChannelAdjustControl: function() {
                 return channelAdjustControl
@@ -309,16 +138,7 @@
     }(jQuery)
 
     let KaraokePlugin = function ($, KaraokeUI) {
-        const ENDPOINT_URL = function() {
-            if(PRODUCTION)
-            {
-                return 'https://karaoke-api.heyqule.net/';
-            }
-            else
-            {
-                return 'http://karaoke-api.heyqule.net:45678/';
-            }
-        }();
+
         const MAX_CACHE_SIZE = 5000;
         //webaudio elements
         let audioContext, audioSource,micAudioContext, micSource;
@@ -572,9 +392,6 @@
             if(savedItem !== null) {
                 touchLocalStorage(songId, savedItem);
             }
-            else if(API_KEY) {
-                _loadSettingFromRemote(songId)
-            }
         }
 
         let touchLocalStorage = function(songId, savedItem) {
@@ -584,31 +401,6 @@
 
             savedItem.date = Date.now();
             localStorage.setItem(songId, JSON.stringify(savedItem));
-        }
-
-        let _loadSettingFromRemote = function(songId) {
-            $.ajax(ENDPOINT_URL+'youtube/get_setting', {
-                type: 'GET',
-                data: {
-                    song_id: songId,
-                    token: API_KEY
-                },
-                success: function(json_data) {
-                    if (typeof json_data === 'undefined' || json_data === null) {
-                        return;
-                    }
-
-                    let data = JSON.parse(json_data);
-                    console.log(data.song_setting);
-                    if (data.success)
-                    {
-                        let setting = JSON.parse(data.song_setting);
-                        touchLocalStorage(songId, setting);
-                        _readjustControls();
-                    }
-                }
-            });
-            return this;
         }
 
         let _readjustControls = function() {
@@ -621,9 +413,7 @@
 
         let _saveSetting = function() {
             let songId = _getSongId();
-            console.log("API_KEY");
-            console.log(API_KEY);
-            if(songId === null || API_KEY === null) {
+            if(songId === null) {
                 return;
             }
             let data = {
@@ -632,54 +422,10 @@
                 hpv: highPassAdjustedValue,
                 date: Date.now()
             }
+            console.log('Saving Setting: '+songId, data)
             localStorage.setItem(songId, JSON.stringify(data));
 
             _trimCache();
-        }
-
-        let _SaveSettingToRemote = function() {
-            let songId = _getSongId();
-            if(API_KEY) {
-                $.ajax(ENDPOINT_URL+'youtube/import', {
-                    type: 'POST',
-                    data: {
-                        song_setting: {
-                            cv: channelAdjustedValue,
-                            lpv: lowPassAdjustedValue,
-                            hpv: highPassAdjustedValue
-                        },
-                        song_id: songId,
-                        token: API_KEY
-                    },
-                    success: function(json_data) {
-                        if (typeof json_data === 'undefined' || json_data === null) {
-                            KaraokeUI.createErrorState('Unable to save your setting.');
-                            return;
-                        }
-
-                        let data = JSON.parse(json_data)
-                        if(data.success)
-                        {
-                            KaraokeUI.setControllerMessage(
-                                KaraokeUI.createHighlightState(data.message)
-                            );
-                        }
-                        else
-                        {
-                            KaraokeUI.setControllerMessage(
-                                KaraokeUI.createErrorState(data.message)
-                            );
-                        }
-                    }
-                })
-            }
-            else
-            {
-                KaraokeUI.setControllerMessage(
-                    KaraokeUI.createErrorState('You don\'t have permission to save to cloud')
-                )
-            }
-            return this;
         }
 
         let _trimCache = function() {
@@ -816,51 +562,11 @@
                 _adjustChannel()
                 return this;
             },
-            saveToRemote: function(element)
-            {
-                _SaveSettingToRemote();
-                return this;
-            },
-            openSearch: function(element)
-            {
-                console.log('Open Search');
-                if(trackSearchDialog == null) {
-                    trackSearchDialog = KaraokeUI.searchDialogUI()
-                }
-                else
-                {
-                    if(trackSearchDialog.dialog('isOpen')) {
-                        trackSearchDialog.dialog('close');
-                    }
-                    else
-                    {
-                        trackSearchDialog.dialog('open');
-                    }
-                }
-            },
-            searchTracks: function() {
-                $.ajax(ENDPOINT_URL+'youtube/search', {
-                    type: 'GET',
-                    data: {
-                        q: KaraokeUI.getSearchQueryControl().val(),
-                        token: API_KEY
-                    },
-                    success: function(data) {
-                        KaraokeUI.renderTab(data)
-                    }
-                })
-            },
             loadSetting: function() {
                 _loadSetting();
             }
         };
     }(jQuery, KaraokeUI);
-
-    $("head").append (
-        '<link '
-        + 'href="//ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/themes/smoothness/jquery-ui.min.css" '
-        + 'rel="stylesheet" type="text/css">'
-    );
 
     if (typeof audioContext === 'undefined') {
         console.log("setting up mic");
@@ -885,15 +591,6 @@
         }
         unsafeWindow.KaraokePluginLowPassAdjust = function(element) {
             KaraokePlugin.lowPassAdjust(element);
-        }
-        unsafeWindow.KaraokePluginSaveToRemote = function() {
-            KaraokePlugin.saveToRemote();
-        }
-        unsafeWindow.KaraokePluginOpenSearchView = function() {
-            KaraokePlugin.openSearch();
-        }
-        unsafeWindow.KaraokePluginSubmitSearch = function() {
-            KaraokePlugin.searchTracks();
         }
     }
 
