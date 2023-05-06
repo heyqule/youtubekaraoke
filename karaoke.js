@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         HTML5 Video Karaoke
+// @name         Youtube HTML5 Karaoke
 // @namespace    https://github.com/heyqule/youtubekaraoke
 // @version      1.1.0
 // @description  HTML5 Karaoke, support center cut on regular MV, left/right vocal/instrumental mixed Karaoke MVs.  Support: Youtube and Bilibili
