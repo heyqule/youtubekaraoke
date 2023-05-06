@@ -1,33 +1,54 @@
 // ==UserScript==
-// @name         Youtube HTML5 Karaoke
+// @name         HTML5 Video Karaoke
 // @namespace    https://github.com/heyqule/youtubekaraoke
-// @version      1.0.1
-// @description  Youtube HTML5 Karaoke, support center cut on regular MV, left/right vocal/instrumental mixed Karaoke MVs.
+// @version      1.1.0
+// @description  HTML5 Karaoke, support center cut on regular MV, left/right vocal/instrumental mixed Karaoke MVs.  Support: Youtube and Bilibili
 // @author       heyqule
 // @match        https://*.youtube.com/*
+// @match        https://*.bilibili.com/*
 // @require      https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js
+// @require      https://cdn.jsdelivr.net/npm/js-md5@0.7.3/build/md5.min.js
 // @grant        unsafeWindow
 // @grant        GM.xmlHttpRequest
 // @run-at       document-end
 // ==/UserScript==
-
-
-(function($) {
+(function($, md5) {
     'use strict';
 
     //Youtube Handler
-    const mediaElement = $('.html5-main-video')[0];
-    const targetContainer = 'div.ytp-right-controls';
-    const primaryPlayer = 'div#primary div#player';
+    let mediaElement = '.html5-main-video';
+    let targetContainer = 'div.ytp-right-controls';
+    let primaryPlayer = 'div#primary div#player';
+    let buttonTag = '<button />';
+    let buttonClass = 'ytp-karaoke-button ytp-button';
+    let buttonStyle = 'position: relative; top:-1.5rem; padding-left:1rem; font-size:2rem; cursor: pointer;';
+    let getSongId = function() {
+        let queryString = window.location.search;
+        let urlParams = new URLSearchParams(queryString);
+        return urlParams.get('v');
+    }
+
+    if (/bilibili\.com/.test(window.location.href)) {
+        mediaElement = '#bilibili-player video';
+        targetContainer = 'div.bpx-player-control-bottom-right';
+        primaryPlayer = '#playerWrap';
+        buttonTag = '<div />';
+        buttonClass = 'bpx-player-ctrl-btn';
+        buttonStyle = 'position: relative; margin-right:1rem; font-size:1.5rem; cursor: pointer;';
+        getSongId = function() {
+            let token = window.location.pathname;
+            return md5(token);
+        }
+    }
 
 
     let KaraokeUI = function ($) {
-        let karaokeButton = $('<button />',{
+        let karaokeButton = $(buttonTag,{
             title: '🎤: Off',
             id: 'karaoke-button',
-            class: 'ytp-karaoke-button ytp-button',
+            class: buttonClass,
             text: '🎤',
-            style: 'position: relative; top:-1.5rem; padding-left:1rem; font-size:2rem;',
+            style: buttonStyle,
             'aria-haspopup': 'true',
             onClick: 'KaraokePluginSwitch();'
         });
@@ -86,7 +107,8 @@
                 })
                 controlPanel.append(
                     $('<div>',{style:'width:33%; display:inline-block;'}).
-                    append('<label style="width:100px;">Vocal Attenuation: (left - center1 - center2 - right)</label><br />').
+                    append('<label style="width:100px;">Vocal Attenuation:</label><br />').
+                    append('<label>(left - center1 - center2 - right)</label><br />').
                     append(channelAdjustControl).
                     append('<br />').
                     append('<label style="width:100px;">High Pass: <span id="KaraokeHighPassValue">'+highPassAdjustedValue+'</span> Hz</label><br />').
@@ -114,11 +136,9 @@
             },
             setKaraokeButtonOn: function() {
                 karaokeButton.attr('title','🎤: On');
-                karaokeButton.css('background-color','#eee');
             },
             setKaraokeButtonOff: function() {
                 karaokeButton.attr('title','🎤: Off');
-                karaokeButton.css('background-color','transparent');
             },
             getChannelAdjustControl: function() {
                 return channelAdjustControl
@@ -374,9 +394,7 @@
         }
 
         let _getSongId = function() {
-            let queryString = window.location.search;
-            let urlParams = new URLSearchParams(queryString);
-            return urlParams.get('v');
+            return getSongId();
         }
 
         let _loadSetting = function() {
@@ -457,10 +475,11 @@
                 try {
                     window.AudioContext = window.AudioContext || window.webkitAudioContext;
                     audioContext = new AudioContext();
-                    audioSource = audioContext.createMediaElementSource(mediaElement);
+                    audioSource = audioContext.createMediaElementSource($(mediaElement)[0]);
                     audioSource.connect(audioContext.destination);
                 } catch (e) {
                     console.error('Web Audio API is not supported in this browser');
+                    console.error(e.message);
                 }
 
                 return this;
@@ -570,6 +589,9 @@
     }(jQuery, KaraokeUI);
 
     if (typeof audioContext === 'undefined') {
+        console.log(mediaElement);
+        console.log(targetContainer);
+        console.log(primaryPlayer);
         console.log("setting up mic");
         KaraokePlugin.setupMic(primaryPlayer);
         console.log("setting up audio source");
@@ -595,4 +617,4 @@
         }
     }
 
-})(jQuery);
+})(jQuery, md5);
