@@ -1,0 +1,35 @@
+---------------------------------------------------------------------------------------------------
+Version: 1.1.1
+Date: 2023-05-06
+
+  Features:
+    - Support for players in bilibili.com/bangumi/play
+  
+  Changes:
+    - Core: Support setup for delayed media elements.
+    - Core: Code Refactors.
+
+---------------------------------------------------------------------------------------------------
+Version: 1.0.1
+Date: 2023-05-06
+
+  Features:
+    - Suppoer BiliBili Videos
+    
+---------------------------------------------------------------------------------------------------
+Version: 1.0.1
+Date: 2022-05-20
+
+  Bugfixes:
+    - Fix a bug which sometimes it doesn't load.
+
+---------------------------------------------------------------------------------------------------
+Version: 1.0.0
+Date: 2022-01-01
+
+  Features:
+    - Added Karaoke mode in Youtube.
+    - Support 2 mode of center cut.
+    - Support left or right channel cut.
+    - Added Karaoke UI to tune settings.
+  
