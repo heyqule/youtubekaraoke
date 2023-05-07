@@ -1,11 +1,11 @@
 // ==UserScript==
 // @name         Youtube HTML5 Karaoke
 // @namespace    https://github.com/heyqule/youtubekaraoke
-// @version      1.1.0
+// @version      1.1.1
 // @description  HTML5 Karaoke, support center cut on regular MV, left/right vocal/instrumental mixed Karaoke MVs.  Support: Youtube and Bilibili
 // @author       heyqule
 // @match        https://*.youtube.com/*
-// @match        https://*.bilibili.com/*
+// @match        https://www.bilibili.com/*
 // @require      https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js
 // @require      https://cdn.jsdelivr.net/npm/js-md5@0.7.3/build/md5.min.js
 // @grant        unsafeWindow
@@ -18,7 +18,7 @@
     //Youtube Handler
     let mediaElement = '.html5-main-video';
     let targetContainer = 'div.ytp-right-controls';
-    let primaryPlayer = 'div#primary div#player';
+    let UiAttachTo = 'div#primary div#player';
     let buttonTag = '<button />';
     let buttonClass = 'ytp-karaoke-button ytp-button';
     let buttonStyle = 'position: relative; top:-1.5rem; padding-left:1rem; font-size:2rem; cursor: pointer;';
@@ -31,13 +31,18 @@
     if (/bilibili\.com/.test(window.location.href)) {
         mediaElement = '#bilibili-player video';
         targetContainer = 'div.bpx-player-control-bottom-right';
-        primaryPlayer = '#playerWrap';
+        UiAttachTo = '#playerWrap';
         buttonTag = '<div />';
         buttonClass = 'bpx-player-ctrl-btn';
         buttonStyle = 'position: relative; margin-right:1rem; font-size:1.5rem; cursor: pointer;';
         getSongId = function() {
             let token = window.location.pathname;
             return md5(token);
+        }
+
+        if (/bilibili\.com\/bangumi\/play/.test(window.location.href)) {
+            targetContainer = 'div.squirtle-controller-wrap-right';
+            UiAttachTo = '#bilibili-player-wrap';
         }
     }
 
@@ -127,7 +132,7 @@
 
                 controlPanel.append(secondColumn);
 
-                controlPanel.insertAfter(primaryPlayer);
+                controlPanel.insertAfter(UiAttachTo);
 
                 highPassAdjustDisplay = $('#KaraokeHighPassValue');
                 lowPassAdjustDisplay = $('#KaraokeLowPassValue');
@@ -161,6 +166,8 @@
     let KaraokePlugin = function ($, KaraokeUI) {
 
         const MAX_CACHE_SIZE = 5000;
+        const MAX_RETRIES = 20;
+        const TIME_INTERVAL = 1500;
         //webaudio elements
         let audioContext, audioSource,micAudioContext, micSource;
         let karaokeFilterOn = false;
@@ -468,23 +475,58 @@
             }
         }
 
+        let _connectAudio = function(element) {
+            //setup audio routing
+            try {
+                window.AudioContext = window.AudioContext || window.webkitAudioContext;
+                audioContext = new AudioContext();
+                audioSource = audioContext.createMediaElementSource(element);
+                audioSource.connect(audioContext.destination);
+            } catch (e) {
+                console.error('Media element not found.');
+                console.error(e.message);
+            }
+        }
+
+        let _getVideoElement = function(mediaElement) {
+            let element = $(mediaElement)
+            if (typeof $(mediaElement)[0] !== 'undefined') {
+                element = $(mediaElement)[0]
+            }
+            return element;
+        }
+
         return {
             setupAudioSource : function ()
             {
-                //setup audio routing
-                try {
-                    window.AudioContext = window.AudioContext || window.webkitAudioContext;
-                    audioContext = new AudioContext();
-                    audioSource = audioContext.createMediaElementSource($(mediaElement)[0]);
-                    audioSource.connect(audioContext.destination);
-                } catch (e) {
-                    console.error('Web Audio API is not supported in this browser');
-                    console.error(e.message);
+                if(typeof _getVideoElement(mediaElement).tagName === 'undefined')
+                {
+                    console.log('audio connecting via interval');
+                    var retries = 0;
+                    var intervalId = setInterval(function() {
+                        console.log('audio connect retry: '+retries);
+                        if(retries > 10) {
+                            clearInterval(intervalId);
+                            return this;
+                        }
+                        console.log(_getVideoElement(mediaElement));
+                        if(_getVideoElement(mediaElement).tagName === 'VIDEO') {
+                            console.log('audio connected');
+                            _connectAudio(_getVideoElement(mediaElement));
+                            clearInterval(intervalId);
+                            return this;
+                        }
+                        retries++;
+                    }, TIME_INTERVAL);
                 }
-
+                else
+                {
+                    console.log('audio connected immediately');
+                    _connectAudio(_getVideoElement(mediaElement));
+                }
                 return this;
             },
-            setupMic: function(primaryPlayer) {
+            setupMic: function() {
                 navigator.mediaDevices.getUserMedia({ audio: true })
                     .then(function(stream) {
                         /* use the stream */
@@ -506,8 +548,30 @@
             },
             setupMenu: function()
             {
-                KaraokeUI.menuUI();
-                return this;
+                if($(targetContainer).length === 0)
+                {
+                    console.log('menu connecting via interval');
+                    var retries = 0;
+                    var intervalId = setInterval(function() {
+                        console.log('menu retry: '+retries);
+                        if(retries > 10) {
+                            clearInterval(intervalId);
+                            return this;
+                        }
+                        if($(targetContainer).length > 0) {
+                            console.log('audio connected');
+                            KaraokeUI.menuUI();
+                            clearInterval(intervalId);
+                            return this;
+                        }
+                        retries++;
+                    }, TIME_INTERVAL);
+                }
+                else
+                {
+                    console.log('menu connected immediately');
+                    KaraokeUI.menuUI();
+                }
             },
             filterOn: function() {
                 console.log("Removing vocals");
@@ -591,9 +655,9 @@
     if (typeof audioContext === 'undefined') {
         console.log(mediaElement);
         console.log(targetContainer);
-        console.log(primaryPlayer);
+        console.log(UiAttachTo);
         console.log("setting up mic");
-        KaraokePlugin.setupMic(primaryPlayer);
+        KaraokePlugin.setupMic();
         console.log("setting up audio source");
         KaraokePlugin.setupAudioSource(mediaElement);
         console.log("setting up menu");
