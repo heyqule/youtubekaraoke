@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Youtube HTML5 Karaoke
 // @namespace    https://github.com/heyqule/youtubekaraoke
-// @version      1.1.1
+// @version      1.1.2
 // @description  HTML5 Karaoke, support center cut on regular MV, left/right vocal/instrumental mixed Karaoke MVs.  Support: Youtube and Bilibili
 // @author       heyqule
 // @license      GPLv3
@@ -11,18 +11,20 @@
 // @require      https://cdn.jsdelivr.net/npm/js-md5@0.7.3/build/md5.min.js
 // @grant        unsafeWindow
 // @grant        GM.xmlHttpRequest
+// @grant        window.onurlchange
 // @run-at       document-end
 // ==/UserScript==
 (function($, md5) {
     'use strict';
 
     //Youtube Handler
-    let mediaElement = '.html5-main-video';
+    let mediaElement = 'video.html5-main-video';
     let targetContainer = 'div.ytp-right-controls';
     let UiAttachTo = 'div#primary div#player';
     let buttonTag = '<button />';
     let buttonClass = 'ytp-karaoke-button ytp-button';
     let buttonStyle = 'position: relative; top:-1.5rem; padding-left:1rem; font-size:2rem; cursor: pointer;';
+    let urlChangePattern = 'watch';
     let getSongId = function() {
         let queryString = window.location.search;
         let urlParams = new URLSearchParams(queryString);
@@ -36,14 +38,16 @@
         buttonTag = '<div />';
         buttonClass = 'bpx-player-ctrl-btn';
         buttonStyle = 'position: relative; margin-right:1rem; font-size:1.5rem; cursor: pointer;';
+        urlChangePattern = 'video';
         getSongId = function() {
             let token = window.location.pathname;
             return md5(token);
         }
 
         if (/bilibili\.com\/bangumi\/play/.test(window.location.href)) {
-            targetContainer = 'div.squirtle-controller-wrap-right';
+            targetContainer = 'div.bpx-player-control-bottom-right';
             UiAttachTo = '#bilibili-player-wrap';
+            urlChangePattern = 'bangumi/play';
         }
     }
 
@@ -619,6 +623,9 @@
 
                 return this;
             },
+            isFilterOn: function() {
+                return karaokeFilterOn;
+            },
             micGainAdjust: function(element)
             {
                 gainAdjustedValue = $(element).val();
@@ -657,13 +664,14 @@
         console.log(mediaElement);
         console.log(targetContainer);
         console.log(UiAttachTo);
+        console.log("Loading setting");
+        KaraokePlugin.loadSetting();
         console.log("setting up mic");
         KaraokePlugin.setupMic();
         console.log("setting up audio source");
         KaraokePlugin.setupAudioSource(mediaElement);
         console.log("setting up menu");
         KaraokePlugin.setupMenu(targetContainer);
-        KaraokePlugin.loadSetting();
 
         unsafeWindow.KaraokePluginSwitch = function() {
             KaraokePlugin.switch();
@@ -681,5 +689,29 @@
             KaraokePlugin.lowPassAdjust(element);
         }
     }
+
+    window.addEventListener("popstate", (event) => {
+        console.log('Event: popstate, reload setting');
+        KaraokePlugin.loadSetting();
+        if(KaraokePlugin.isFilterOn()) {
+            KaraokePlugin.switch();
+            KaraokePlugin.switch();
+        }
+    });
+
+    if (window.onurlchange === null) {
+        console.log('Url Change Event. Setup');
+        window.addEventListener('urlchange', (info) => {
+             console.log('Url Changed, reload setting.');
+             if (window.location.href.includes(urlChangePattern)) {
+                KaraokePlugin.loadSetting();
+                if(KaraokePlugin.isFilterOn()) {
+                    KaraokePlugin.switch();
+                    KaraokePlugin.switch();
+                }
+            }
+        });
+    }
+
 
 })(jQuery, md5);
