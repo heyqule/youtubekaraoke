@@ -1,21 +1,30 @@
 // ==UserScript==
 // @name         Youtube HTML5 Karaoke
 // @namespace    https://github.com/heyqule/youtubekaraoke
-// @version      1.1.2
+// @version      1.2.0
 // @description  HTML5 Karaoke, support center cut on regular MV, left/right vocal/instrumental mixed Karaoke MVs.  Support: Youtube and Bilibili
 // @author       heyqule
 // @license      GPLv3
-// @match        https://*.youtube.com/*
+// @match        https://www.youtube.com/*
 // @match        https://www.bilibili.com/*
-// @require      https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js
+// @require      https://code.jquery.com/jquery-4.0.0-beta.min.js
 // @require      https://cdn.jsdelivr.net/npm/js-md5@0.7.3/build/md5.min.js
 // @grant        unsafeWindow
 // @grant        GM.xmlHttpRequest
 // @grant        window.onurlchange
 // @run-at       document-end
 // ==/UserScript==
+
 (function($, md5) {
     'use strict';
+
+
+    if (window.trustedTypes && window.trustedTypes.createPolicy) {
+        window.trustedTypes.createPolicy('default', {
+            createHTML: (string) => string,
+            createScript: (string) => string
+        });
+    }
 
     //Youtube Handler
     let mediaElement = 'video.html5-main-video';
