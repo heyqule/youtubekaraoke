@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Youtube HTML5 Karaoke
 // @namespace    https://github.com/heyqule/youtubekaraoke
-// @version      1.2.0
+// @version      1.3.0
 // @description  HTML5 Karaoke, support center cut on regular MV, left/right vocal/instrumental mixed Karaoke MVs.  Support: Youtube and Bilibili
 // @author       heyqule
 // @license      GPLv3
@@ -30,6 +30,7 @@
     let mediaElement = 'video.html5-main-video';
     let targetContainer = 'div.ytp-right-controls';
     let UiAttachTo = 'div#primary div#player';
+    let youtubeDarkThemeUiAttachTo = 'div#primary div#alerts';
     let buttonTag = '<button />';
     let buttonClass = 'ytp-karaoke-button ytp-button';
     let buttonStyle = 'position: relative; top:-1.5rem; padding-left:1rem; font-size:2rem; cursor: pointer;';
@@ -39,6 +40,8 @@
         let urlParams = new URLSearchParams(queryString);
         return urlParams.get('v');
     }
+    let isYoutubeDarkTheme = document.documentElement.hasAttribute('darker-dark-theme');
+    let darkThemeTextColor = ' color:#fff;';
 
     if (/bilibili\.com/.test(window.location.href)) {
         mediaElement = '#bilibili-player video';
@@ -80,12 +83,21 @@
                 $(targetContainer).prepend(karaokeButton);
             },
             controlPanelUI : function(channelAdjustedValue, highPassAdjustedValue, lowPassAdjustedValue, gainAdjustedValue) {
+
+                let columnStyle = 'width:33%; display:inline-block;';
+                let titleStyle = '';
+                if (isYoutubeDarkTheme) {
+                    columnStyle += ' color:white;';
+                    titleStyle = 'color:white;'
+                }
+
                 controlPanel = $('<div>',{
-                    id:"karaoke_controlpanel"
+                    id:"karaoke_controlpanel",
                 });
 
                 controlPanel.append($('<h3>',{
-                    text: '🎤 Controls'
+                    text: '🎤 Controls',
+                    style: titleStyle
                 }));
 
                 channelAdjustControl = $('<input>',{
@@ -124,8 +136,9 @@
                     step: 0.1,
                     onchange: 'KaraokePluginMicGainAdjust(this)'
                 })
+
                 controlPanel.append(
-                    $('<div>',{style:'width:33%; display:inline-block;'}).
+                    $('<div>',{style: columnStyle}).
                     append('<label style="width:100px;">Vocal Attenuation:</label><br />').
                     append('<label>(left - center1 - center2 - right)</label><br />').
                     append(channelAdjustControl).
@@ -138,15 +151,21 @@
                 );
 
 
-                let secondColumn = $('<div>',{style:'width:33%; display:inline-block;'});
+                let secondColumn = $('<div>',{style: columnStyle});
 
                 secondColumn.append('<label style="width:100px;">🎤 Gain: <span id="KaraokeGainValue">'+gainAdjustedValue+'</span></label><br />').
                 append(gainAdjustControl).
-                append('<br /><br />');
+                append('<br /><br />🎤 from browser has appox 10ms delay.  Recommend to route 🎤 through an audio interface.');
 
                 controlPanel.append(secondColumn);
 
-                controlPanel.insertAfter(UiAttachTo);
+                if (isYoutubeDarkTheme) {
+                    controlPanel.insertBefore(youtubeDarkThemeUiAttachTo);
+                }
+                else
+                {
+                    controlPanel.insertAfter(UiAttachTo);
+                }
 
                 highPassAdjustDisplay = $('#KaraokeHighPassValue');
                 lowPassAdjustDisplay = $('#KaraokeLowPassValue');
