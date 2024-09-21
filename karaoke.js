@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Youtube HTML5 Karaoke
 // @namespace    https://github.com/heyqule/youtubekaraoke
-// @version      1.3.0
+// @version      1.3.1
 // @description  HTML5 Karaoke, support center cut on regular MV, left/right vocal/instrumental mixed Karaoke MVs.  Support: Youtube and Bilibili
 // @author       heyqule
 // @license      GPLv3
@@ -40,7 +40,7 @@
         let urlParams = new URLSearchParams(queryString);
         return urlParams.get('v');
     }
-    let isYoutubeDarkTheme = document.documentElement.hasAttribute('darker-dark-theme');
+    let isYoutubeDarkTheme = document.documentElement.hasAttribute('dark');
     let darkThemeTextColor = ' color:#fff;';
 
     if (/bilibili\.com/.test(window.location.href)) {
