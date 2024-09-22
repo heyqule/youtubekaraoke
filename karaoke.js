@@ -1,8 +1,10 @@
 // ==UserScript==
 // @name         Youtube HTML5 Karaoke
 // @namespace    https://github.com/heyqule/youtubekaraoke
-// @version      1.3.1
-// @description  HTML5 Karaoke, support center cut on regular MV, left/right vocal/instrumental mixed Karaoke MVs.  Support: Youtube and Bilibili
+// @version      1.4.0
+// @description  HTML5 Karaoke Vocal Control, support center channel cut on regular MV, left/right channel vocal/instrumental mixed MVs.  Support: Youtube and Bilibili
+// @description:zh  HTML5 卡拉OK人声控制，支持常规MV中置声道切换，左右声道人声/器乐混合MV。支持：Youtube 和 Bilibili
+// @description:ja  HTML5 カラオケ ボーカル コントロール、通常の MV でのセンター チャンネル カット、左/右チャンネルのボーカル/インストゥルメンタル ミックス MV をサポート。サポート: Youtube, Bilibili
 // @author       heyqule
 // @license      GPLv3
 // @match        https://www.youtube.com/*
@@ -26,6 +28,45 @@
         });
     }
 
+	const languages={
+		"zh":{
+            "title": "🎤 控制",
+            "off":   "🎤: 关",
+            "on":    "🎤: 开",
+            "vocal_l1": "人声衰减",
+            "vocal_l2": "(左 - 中1 - 中2 - 右)",
+            "high_pass": "高通",
+            "low_pass": "低通",
+            "mic_gain": "🎤 增益",
+            "mic_gain_desc": "从浏览器连接的麦克风有明显的延迟。  建议通过音频接口器去控制。",
+		},
+        //Ja by google translate
+        "ja":{
+            "title": "🎤 コントロール",
+            "off":   "🎤: オフ",
+            "on":    "🎤: オン",
+            "vocal_l1": "ボーカルの減衰",
+            "vocal_l2": "(左 - 中1 - 中2 - 右)",
+            "high_pass": "ハイパス",
+            "low_pass": "ローパス",
+            "mic_gain": "🎤 ゲイン",
+            "mic_gain_desc": "ブラウザから接続したマイクの遅延が顕著です。  オーディオインターフェース経由でコントロールすることをお勧めします。",
+		},
+		"en":{
+            "title": "🎤 Controls",
+            "off":   "🎤: OFF",
+            "on":    "🎤: ON",
+            "vocal_l1": "Vocal Attenuation",
+            "vocal_l2": "(left - center1 - center2 - right)",
+            "high_pass": "High Pass",
+            "low_pass": "Low Pass",
+            "mic_gain": "🎤 Gain",
+            "mic_gain_desc": "Mic connected from browser has noticeable delay.  Recommend to connect mic through an audio interface.",
+		},
+    }
+    let lang = 'en';
+
+
     //Youtube Handler
     let mediaElement = 'video.html5-main-video';
     let targetContainer = 'div.ytp-right-controls';
@@ -42,6 +83,12 @@
     }
     let isYoutubeDarkTheme = document.documentElement.hasAttribute('dark');
     let darkThemeTextColor = ' color:#fff;';
+
+    let youtubeLang = document.documentElement.getAttribute('lang');
+    if (youtubeLang)
+    {
+        lang = (youtubeLang.indexOf("-") != -1 ? youtubeLang.split("-")[0] : 'en').toLocaleLowerCase();
+    }
 
     if (/bilibili\.com/.test(window.location.href)) {
         mediaElement = '#bilibili-player video';
@@ -65,8 +112,11 @@
 
 
     let KaraokeUI = function ($) {
+        let _translate = function(label) {
+            return languages[lang][label] ?? languages["en"][label] ?? '{404 locale:'+label+'}';
+        }
         let karaokeButton = $(buttonTag,{
-            title: '🎤: Off',
+            title: _translate('off'),
             id: 'karaoke-button',
             class: buttonClass,
             text: '🎤',
@@ -87,8 +137,8 @@
                 let columnStyle = 'width:33%; display:inline-block;';
                 let titleStyle = '';
                 if (isYoutubeDarkTheme) {
-                    columnStyle += ' color:white;';
-                    titleStyle = 'color:white;'
+                    columnStyle += darkThemeTextColor;
+                    titleStyle = darkThemeTextColor;
                 }
 
                 controlPanel = $('<div>',{
@@ -96,7 +146,7 @@
                 });
 
                 controlPanel.append($('<h3>',{
-                    text: '🎤 Controls',
+                    text: _translate('title'),
                     style: titleStyle
                 }));
 
@@ -139,23 +189,23 @@
 
                 controlPanel.append(
                     $('<div>',{style: columnStyle}).
-                    append('<label style="width:100px;">Vocal Attenuation:</label><br />').
-                    append('<label>(left - center1 - center2 - right)</label><br />').
+                    append('<label style="width:100px;">'+_translate('vocal_l1')+':</label><br />').
+                    append('<label>'+_translate('vocal_l2')+'</label><br />').
                     append(channelAdjustControl).
                     append('<br />').
-                    append('<label style="width:100px;">High Pass: <span id="KaraokeHighPassValue">'+highPassAdjustedValue+'</span> Hz</label><br />').
+                    append('<label style="width:100px;">'+_translate('high_pass')+': <span id="KaraokeHighPassValue">'+highPassAdjustedValue+'</span> Hz</label><br />').
                     append(highPassAdjustControl).
                     append('<br />').
-                    append('<label style="width:100px;">Low Pass: <span id="KaraokeLowPassValue">'+lowPassAdjustedValue+'</span> Hz</label><br />').
+                    append('<label style="width:100px;">'+_translate('low_pass')+': <span id="KaraokeLowPassValue">'+lowPassAdjustedValue+'</span> Hz</label><br />').
                     append(lowPassAdjustControl)
                 );
 
 
                 let secondColumn = $('<div>',{style: columnStyle});
 
-                secondColumn.append('<label style="width:100px;">🎤 Gain: <span id="KaraokeGainValue">'+gainAdjustedValue+'</span></label><br />').
-                append(gainAdjustControl).
-                append('<br /><br />🎤 from browser has appox 10ms delay.  Recommend to route 🎤 through an audio interface.');
+                secondColumn.append('<label style="width:100px;">'+_translate('mic_gain')+': <span id="KaraokeGainValue">'+gainAdjustedValue+'</span></label><br />').
+                    append(gainAdjustControl).
+                    append('<p>'+_translate('mic_gain_desc')+'</p>');
 
                 controlPanel.append(secondColumn);
 
@@ -173,10 +223,10 @@
                 return controlPanel
             },
             setKaraokeButtonOn: function() {
-                karaokeButton.attr('title','🎤: On');
+                karaokeButton.attr('title', _translate('on'));
             },
             setKaraokeButtonOff: function() {
-                karaokeButton.attr('title','🎤: Off');
+                karaokeButton.attr('title',_translate('off'));
             },
             getChannelAdjustControl: function() {
                 return channelAdjustControl
